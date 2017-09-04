@@ -1,0 +1,393 @@
+
+
+//|
+//| VirtualList - list view bound with the records array. The list is real time bound with the array - view reflects changes in the array.
+//|
+//| params.container - DOM element, the list containing list items representing records.
+//| params.bufferSize - integer, size of sliding window - max number of DOM element used to render records in the view.
+//| params.renderItemView - function(recordNo:integer,record: object, itemEl: Element) - function used to render contents of itemEl by record data, optional.
+//| params.setupItemView - function(recordNo:integer,record: object, itemEl: Element) - function used to setup contents of itemEl after rendering (add classes etc.), optional.
+//| params.getItemData - function(recordNo:integer): object - function gets called on undefined records to fetch record from external source, optional.
+//|
+
+//|
+//| returns DOM element passed in params.container with the following properties/mthods added:
+//| - list.value - array, read/write, recordset (array of objects).
+//| - list.currentIndex - integer, read/write, index of current record in records array or -1 if there is no current record
+//| - list.current - object, read/write, current record or null if there is no current record.
+//| - list.recordView(record|index) - function returns DOM element, used to render given record (or record at index). May return null if the record is out of sliding window.
+//|
+
+function VirtualList(params) {
+    const list = params.container; assert list;
+    const BUFFER_SIZE = params.bufferSize || 100; // sliding buffer size, number of DOM elements in the view
+    const offset = 100;
+    var   records = null;
+    var   template = list.first;
+    var   item_height = 10;   // will be adjusted later
+    var   buffer_start = 0;   // index of first buffer element in _records
+    var   visible_items = 0;  // number of visible items in the view
+    var   current_record = undefined;  // current record
+    var   cache = [];         // cache of DOM elements - list items
+
+    var   showRecord = params.renderItemView || null;      // showRecord(index,record, itemElement)
+    var   setupRecord = params.setupItemView || null;  // setupItemView(index,record, itemElement)
+    var   recordData = params.getItemData;
+
+    // var   posUp = { top : 0, left : 0 };
+    // var   posDn = { top : 0, left : 0 };
+    var   img_width = 200;
+    var   list_height = list.box(#height, #border, #self).toInteger();
+    var   column = {
+      0 : {
+        up : { top : 0, left : 0 },
+        dn : { top : 0, left : 0 },
+        last:0
+      },
+      1 : {
+        up : { top : 0, left : 210 },
+        dn : { top : 0, left : 210 },
+        last:0
+      },
+      2 : {
+        up : { top : 0, left : 420 },
+        dn : { top : 0, left : 420 },
+        last:0
+      }
+    };
+    var minPos = {up:0,dn:0}
+    function dogc() { gc(); }
+    // stdout.println(template.outerHtml);
+    //multiselection support (not yet)
+    //var   selected = params.multiselect ? {} : null; // ATTENTION: if multiselect then each record must have unique .id field
+    var   setupSetObserver;
+    // stdout.println(list.length);
+    function recordAt(n) {
+      // stdout.println("recordAt");
+      var r = records[n];
+      // if(!r && recordData ) {
+      //   setupSetObserver(false, true);
+      //   r = records[n] = recordData(n);
+      //   setupSetObserver(true, true);
+      // }
+      return r;
+    }
+    function getMinColumn(pos){
+        var column_index = 0;
+        for(var j=0; j<column.length;j++){
+          if ( Math.abs( column[column_index][pos]["top"] ) > Math.abs( column[j][pos]["top"] ) ) {
+              column_index = j;
+          }
+        }
+        // stdout.println("ox",column_index);
+        return column_index;
+    }
+    function createRecViewer(rec) {
+      // stdout.println("createRecViewer");
+      var t = cache.pop() || template.clone();
+      // assert !t.state.current;
+      // t.data = rec;
+      return t;
+    }
+
+    function setPosition( el ) {
+      //决定应该添加到哪一列
+        var column_index = getMinColumn("dn");
+        var idx = column[column_index]["last"];
+        // stdout.println("column_index",column_index);
+        el.@#column = column_index;
+        el.@#idx = idx;
+        el.$(span).text = "column: "+column_index+" idx: "+idx;
+        el.style.set{
+          width : px(img_width),
+          top   : px(column[column_index]["dn"]["top"]),
+          left  : px(column[column_index]["dn"]["left"])
+        }
+        column[column_index]["last"] += 1;
+        // contain_height = el.box(#height, #border, #self).toInteger();
+        column[column_index]["dn"]["top"] += el.box(#height, #border, #self).toInteger() + 10;
+    }
+    function setPosition2( el ) {
+      //决定应该添加到哪一列
+        var column_index = getMinColumn("up");
+        // stdout.println("column_index",column_index);
+        var elh = el.box(#height, #border, #self).toInteger() + 10;
+        el.style.set{
+          width : px(img_width),
+          top   : px(column[column_index]["up"]["top"]-elh),
+          left  : px(column[column_index]["up"]["left"])
+        }
+        // contain_height = el.box(#height, #border, #self).toInteger();
+        column[column_index]["up"]["top"] -= elh;
+    }
+    function pumpAfter() {
+      // stdout.println("pumpAfter");
+      // var bso = buffer_start;
+      // var bsn = buffer_start = i;
+      if ( buffer_start >= records.length ) {
+        return;
+      }
+      // var bsn = 0;
+       var (x1,y1,x2,y2) = 0;
+        // var i = 0;
+        var flag = 1;
+        for ( var el in list.$$(li) ){
+          stdout.println("t");
+          if (flag > column.length) {
+            break;
+          }
+          (x1,y1,x2,y2) = el.box(#rect, #border, #parent);
+          if (y2 < - offset) {
+            cache.push(el);
+            el.detach();
+            // bsn++;
+            flag = 1;
+          }else {
+            flag++;
+          }
+        }
+        list.timer(1s,dogc);
+
+        //设置顶部各列的位置
+        var el;
+        for(var i=0;i<column.length;i++){
+          el = $(li[column={i}]);
+          if (!el) break;
+          (x1,y1,x2,y2) = el.box(#rect, #border, #parent);
+          column[i]["up"]["top"] = y1 - 10;
+        }
+
+      // if(i + BUFFER_SIZE > records.length)
+      //   i = Integer.max(0, records.length - BUFFER_SIZE + 1);
+      // var bsn = buffer_start = i;
+
+
+
+      // var ni = bsn + list.length;
+      var ni = buffer_start;
+      var niend = Integer.min(ni + BUFFER_SIZE - list.length, records.length);
+
+      buffer_start = niend;
+      stdout.println("after",ni,niend,buffer_start);
+      // var column_index = 0;
+      // var contain_height = 0;
+      for( var i = ni; i < niend; ++i )
+      {
+        var rec = recordAt(i);
+        var t = createRecViewer(rec);
+        list.append(t);
+        // setupRecordObserver(rec,t);
+        showRecord(i,rec,t);
+        setPosition( t );
+        // buffer_start++;
+      }
+      // buffer_start++;
+      minPos = {
+        up: getMinColumn("up"),
+        dn: getMinColumn("dn")
+      }
+    }
+
+    function pumpBefore() {
+      stdout.println("pumpBefore");
+      // return;
+      if ( buffer_start < 0 ) {
+        return;
+      }
+      // var bsn = 0;
+      var (x1,y1,x2,y2) = 0;
+      // var i = 0;
+      // var flag = 1;
+      for ( var el in list.$$(li) ){
+        stdout.println("t");
+        // if (flag > column.length) {
+        //   break;
+        // }
+        (x1,y1,x2,y2) = el.box(#rect, #border, #parent);
+        if (y1 > list_height + offset) {
+          cache.push(el);
+          el.detach();
+          // bsn++;
+          // flag = 1;
+        }else {
+          // flag++;
+        }
+      }
+      list.timer(1s,dogc);
+
+      stdout.println("buffer_start",buffer_start);
+      var ni = Integer.max(buffer_start - 2*BUFFER_SIZE + list.length, 0);
+      var niend = ni + BUFFER_SIZE - list.length - 1;
+
+      buffer_start = niend + list.length+1;
+      stdout.println("before",ni,niend,buffer_start);
+      // return;
+      for( var i = ni; i < niend; ++i )
+      {
+        var rec = recordAt(i);
+        var t = createRecViewer(rec);
+        list.prepend(t);
+        // setupRecordObserver(rec,t);
+        showRecord(i,rec,t);
+        setPosition2( t );
+        // buffer_start++;
+      }
+      minPos = {
+        up: getMinColumn("up"),
+        dn: getMinColumn("dn")
+      }
+    }
+    // list.onSize = function()
+    // {
+    //   stdout.println("3");
+    //   if(list.first)
+    //     item_height = list.first.box(#height,#client); // adjust real item height
+    //   var ch = list.box(#height,#client);
+    //   var vi = (ch + item_height - 1) / (item_height || 10);
+    //   if( vi != visible_items )
+    //     visible_items = vi;
+    // }
+    function wheelUp(){
+      for ( var el in list.$$(li) ){
+        el.style#top = px( el.style#top.toFloat() + 30 );
+      }
+      for(var j=0; j<column.length;j++){
+        column[j]["up"]["top"] += 30;
+        column[j]["dn"]["top"] += 30;
+      }
+      stdout.println("up",minPos.up,column[minPos.up]["up"]["top"]);
+      // stdout.println( JSON.stringify(column, "  "));
+      if ( column[minPos.up]["up"]["top"] > -1*offset) {
+        pumpBefore();
+      }
+    }
+    function wheelDown(){
+      for ( var el in list.$$(li) ){
+        el.style#top = px( el.style#top.toFloat() - 30 );
+      }
+      for(var j=0; j<column.length;j++){
+        column[j]["up"]["top"] -= 30;
+        column[j]["dn"]["top"] -= 30;
+      }
+      // stdout.println("dn",minPos.dn,column[minPos.dn]["dn"]["top"]);
+      // stdout.println("xx",list_height, column[minPos.dn]["dn"]["top"]);
+      // stdout.println("dn",column[minPos.dn]["up"]["top"]);
+      if ( column[minPos.dn]["dn"]["top"] < list_height + offset) {
+        pumpAfter();
+      }
+
+    }
+    function mousewheel(evt) {
+        if (evt.wheelDelta < 0) {
+            //内容上移(滚轮向内滚动)
+            wheelDown();
+            // stdout.println("d");
+        } else {
+            //内容下移(滚轮向外滚动)
+            wheelUp();
+            // stdout.println("u");
+        }
+        return true;
+    }
+
+    list.onMouse = function(evt) {
+      switch(evt.type) {
+        case Event.MOUSE_WHEEL: mousewheel(evt); break;
+      }
+    }
+
+    setupSetObserver = function(apply, silent = false ){
+      if (apply) {
+        stdout.println("true");
+      }
+    }
+
+    // list[#posup] = property(v) {
+    //   get return posUp;
+    //   set {
+
+    //   }
+    // }
+    // list[#posdn] = property(v) {
+    //   get return posDn;
+    //   set {
+
+    //   }
+    // }
+    list[#value] = property(v) {
+      get return records;
+      set {
+        // stdout.println("list.value");
+        if ( records !== v ) {
+          if (records)
+            setupSetObserver(false);
+          if(records = v)
+            setupSetObserver(true);
+        }
+        list.clear();
+        if( records )
+          pumpAfter.call(list);
+      }
+    }
+
+    list[#offset] = property(v) {
+		get return buffer_start;
+	}
+
+    if(!showRecord) showRecord = function(i,r,el)
+    {
+      // stdout.println("showRecord");
+      // el.value = r; // each item has behavior form so its value is an aggregate
+      // el.state.current = current_record === r;
+      if(setupRecord) setupRecord(i,r,el);
+    };
+
+    // returns "record view" - DOM element that represents nth record.
+    //         or null if the record is out of the sliding window
+    list.recordView = function( recordOrIndex ) {
+      var idx = recordOrIndex;
+      if(typeof recordOrIndex != #integer)
+        idx = records.indexOf(recordOrIndex);
+      if( idx < buffer_start )
+        return null; // out of sliding window
+      else if( idx >= buffer_start + list.length )
+        return null; // out of sliding window
+      return list[idx - buffer_start];
+    }
+
+    list.clear();
+    if( records )
+      pumpAfter(0);
+    return list;
+}
+
+class VList : Behavior
+{
+  function attached() {
+     VirtualList { container: this };
+  }
+  property animating(v) {
+    get return this.state.animating;
+  }
+}
+
+class VGrid : Behavior
+{
+  function attached() {
+    this.tbody = this.$(tbody);
+    VirtualList { container: this.tbody  };
+  }
+
+  property value(v) {
+    set this.tbody.value = v;
+    get return this.tbody.value;
+  }
+
+  property animating(v) {
+    get return this.tbody.state.animating;
+  }
+
+
+}
+
+

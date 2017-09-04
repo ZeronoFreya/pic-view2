@@ -1,0 +1,33 @@
+@import "common.scs";
+#pic-view{
+    /*prototype:ImgList url(../tis/imglist.tis);*/
+    /*size: 300dip;*/
+    width: *;
+    height: 400px;
+    border-spacing: 10dip;
+    /*overflow: hidden;*/
+    /*overflow: scroll-indicator;*/
+    /*overflow: auto;*/
+    /*flow: horizontal-wrap;*/
+    /*background: red;*/
+    outline: 1px red solid;
+    display: block;
+    position: relative;
+    margin-top: 200px;
+}
+li{
+    /*behavior:form;*/
+    width: 50px;
+    background: gold;
+    position: absolute;
+    overflow: hidden;
+    top: 0;
+    left: 0;
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: cover;
+    /*background: url(../num.jpg) no-repeat top left;*/
+}
+li img{
+    width: *;
+}

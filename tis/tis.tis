@@ -1,0 +1,26 @@
+﻿// include "common.tis";
+include "vlist.tis";
+self.ready = function() {
+
+    var records = [];
+    for(var i=0;i<40;i++){
+        records.push({
+            id: i
+        });
+    }
+
+    function myRandom(min,max){
+        return Math.random()*(max-min+1)+min;
+    }
+    function setupItemView(recordNo, record, itemEl) {
+     var h = Math.round( myRandom(100,200) );
+     itemEl.style#height = px(h);
+      itemEl.$(p).text = record.id;
+    }
+    var vlist = VirtualList {
+      container     : $(#pic-view),
+      bufferSize    : 20,
+      setupItemView : setupItemView
+    };
+    vlist.value = records;
+}
