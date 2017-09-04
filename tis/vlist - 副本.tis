@@ -120,45 +120,71 @@ function VirtualList(params) {
         // contain_height = el.box(#height, #border, #self).toInteger();
         column[column_index]["up"]["top"] -= elh;
     }
-    function appends(el){
-      var (x1,y1,x2,y2) = 0;
-      var last;
-      var min = 99999;
-      var min_column;
-      for( var ul in list.$$(ul) ){
-        if(last = ul.last){
-          (x1,y1,x2,y2) = last.box(#rect, #border, #parent);
-          if (y2 < min) {
-              min = y2;
-              min_column = ul;
-          }
-        }else{
-            min_column = ul;
+    function pumpAfter() {
+      // stdout.println("pumpAfter");
+      // var bso = buffer_start;
+      // var bsn = buffer_start = i;
+      if ( buffer_start >= records.length ) {
+        return;
+      }
+      // var bsn = 0;
+       var (x1,y1,x2,y2) = 0;
+        // var i = 0;
+        var flag = 1;
+        for ( var el in list.$$(li) ){
+          stdout.println("t");
+          if (flag > column.length) {
             break;
+          }
+          (x1,y1,x2,y2) = el.box(#rect, #border, #parent);
+          if (y2 < - offset) {
+            cache.push(el);
+            el.detach();
+            // bsn++;
+            flag = 1;
+          }else {
+            flag++;
+          }
         }
-      }
-      min_column.append(el);
-    }
-    function getListLength(){
-      var i = 0;
-      for(var ul in list.$$(ul)){
-        i += ul.length;
-      }
-      return i;
-    }
-    function pumpAfter(i) {
-      var bsn = buffer_start = i;
-      var list_length = getListLength();
-      var ni = bsn + list_length ;
-      var niend = Integer.min(ni + BUFFER_SIZE - list_length, records.length);
+        list.timer(1s,dogc);
+
+        //设置顶部各列的位置
+        var el;
+        for(var i=0;i<column.length;i++){
+          el = $(li[column={i}]);
+          if (!el) break;
+          (x1,y1,x2,y2) = el.box(#rect, #border, #parent);
+          column[i]["up"]["top"] = y1 - 10;
+        }
+
+      // if(i + BUFFER_SIZE > records.length)
+      //   i = Integer.max(0, records.length - BUFFER_SIZE + 1);
+      // var bsn = buffer_start = i;
+
+
+
+      // var ni = bsn + list.length;
+      var ni = buffer_start;
+      var niend = Integer.min(ni + BUFFER_SIZE - list.length, records.length);
+
+      buffer_start = niend;
+      stdout.println("after",ni,niend,buffer_start);
+      // var column_index = 0;
+      // var contain_height = 0;
       for( var i = ni; i < niend; ++i )
       {
-          var rec = recordAt(i);
-          var t = createRecViewer(rec);
-          // list.append(t);
-          appends(t);
-          // setupRecordObserver(rec,t);
-          showRecord(i,rec,t);
+        var rec = recordAt(i);
+        var t = createRecViewer(rec);
+        list.append(t);
+        // setupRecordObserver(rec,t);
+        showRecord(i,rec,t);
+        setPosition( t );
+        // buffer_start++;
+      }
+      // buffer_start++;
+      minPos = {
+        up: getMinColumn("up"),
+        dn: getMinColumn("dn")
       }
     }
 
@@ -222,13 +248,6 @@ function VirtualList(params) {
     //     visible_items = vi;
     // }
     function wheelUp(){
-      var sy = 0;
-      for ( var ul in list.$$(ul) ){
-        sy = ul.scroll(#top);
-        // stdout.println("sy",sy);
-        ul.scrollTo(0, sy - 30);
-      }
-      return;
       for ( var el in list.$$(li) ){
         el.style#top = px( el.style#top.toFloat() + 30 );
       }
@@ -243,13 +262,6 @@ function VirtualList(params) {
       }
     }
     function wheelDown(){
-      var sy = 0;
-      for ( var ul in list.$$(ul) ){
-        sy = ul.scroll(#top);
-        // stdout.println("sy",sy);
-        ul.scrollTo(0, sy + 30);
-      }
-      return;
       for ( var el in list.$$(li) ){
         el.style#top = px( el.style#top.toFloat() - 30 );
       }
@@ -277,11 +289,7 @@ function VirtualList(params) {
         }
         return true;
     }
-    // list.onScroll = function(evt)
-    // {
-    //   if( evt.type == Event.SCROLL_POS )
-    //     onScrollTo( (evt.scrollPos / item_height).limit( 0 , records.length - 1 - visible_items));
-    // };
+
     list.onMouse = function(evt) {
       switch(evt.type) {
         case Event.MOUSE_WHEEL: mousewheel(evt); break;
@@ -291,7 +299,6 @@ function VirtualList(params) {
     setupSetObserver = function(apply, silent = false ){
       if (apply) {
         stdout.println("true");
-
       }
     }
 
@@ -307,19 +314,6 @@ function VirtualList(params) {
 
     //   }
     // }
-    function initStaggeredGrid(){
-      var border_spacing = (list.style#border-spacing).toFloat(#px);
-      var baseW = 270;
-      var (container_width, container_height) = list.box(#dimension, #inner);
-      var column_count = Math.floor( container_width / baseW.toFloat() + 0.5 ).toInteger();
-      var column_width = Math.floor( ( container_width + border_spacing ) / column_count - border_spacing );
-      list.style#flow = "horizontal";
-      for(var i=0;i<column_count;i++){
-        list.$append(<ul idx={i} style="width:{px(column_width)}"></ul>);
-      }
-
-    }
-
     list[#value] = property(v) {
       get return records;
       set {
@@ -331,10 +325,8 @@ function VirtualList(params) {
             setupSetObserver(true);
         }
         list.clear();
-        if( records ){
-          initStaggeredGrid();
-          pumpAfter.call(list,0);
-        }
+        if( records )
+          pumpAfter.call(list);
       }
     }
 

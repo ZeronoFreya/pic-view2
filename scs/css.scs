@@ -12,17 +12,25 @@
     /*background: red;*/
     outline: 1px red solid;
     display: block;
-    position: relative;
+    /*position: relative;*/
     margin-top: 200px;
+    /*flow:horizontal;*/
+}
+ul{
+    outline: 1px blue solid;
+    height: *;
+    border-spacing: 10dip;
+    overflow: hidden;
 }
 li{
     /*behavior:form;*/
-    width: 50px;
+    width: *;
     background: gold;
-    position: absolute;
+    /*position: absolute;*/
     overflow: hidden;
-    top: 0;
-    left: 0;
+
+   /* top: 0;
+    left: 0;*/
     background-repeat: no-repeat;
     background-position: center center;
     background-size: cover;

@@ -9,10 +9,10 @@ self.ready = function() {
         });
     }
 
-    function myRandom(min,max){
-        return Math.random()*(max-min+1)+min;
-    }
     function setupItemView(recordNo, record, itemEl) {
+        function myRandom(min,max){
+            return Math.random()*(max-min+1)+min;
+        }
      var h = Math.round( myRandom(100,200) );
      itemEl.style#height = px(h);
       itemEl.$(p).text = record.id;
