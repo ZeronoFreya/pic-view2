@@ -23,4 +23,8 @@ self.ready = function() {
       setupItemView : setupItemView
     };
     vlist.value = records;
+
+    $(#pic-view).on("click","ul",function(){
+        stdout.println(this.scroll(#top));
+    });
 }

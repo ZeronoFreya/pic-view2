@@ -147,24 +147,81 @@ function VirtualList(params) {
       return i;
     }
     function pumpAfter(i) {
-      var bsn = buffer_start = i;
+
+      var bsn = 0;  //所有浏览过的节点的个数
+      var bottom = 0; //每一列的节点的底部距父节点的距离，判断是否应detach
+      var temp = [];
+      var marginTop = undefined;  //detach之前节点后，维持当前节点的位置，即是说，每一列是由marginTop撑开的
+      // 遍历每一列
+      for ( var ul in list.$$(ul) ){
+        temp = []; // 临时储存应detach的节点，不能在循环中detach，否则无法获取marginTop
+        for ( var el in ul.$$(li) ){
+            bottom = el.box(#bottom, #border, #parent) ;
+            if (bottom > 0) {
+              if (marginTop = ul.@#mt) {
+                marginTop = marginTop.toInteger();
+              }else{
+                marginTop = 0;
+              }
+              // 取得当前列第一个节点的Top信息
+              marginTop += Math.abs( ul.first.box(#top, #border, #parent) );
+              // 取得当前节点的Top信息
+              marginTop -= Math.abs( el.box(#top, #border, #parent) );
+              // 清除当前列第一个节点的marginTop值，否则存入cache后会携带marginTop样式
+              ul.first.style#margin-top = undefined;
+              break;
+            }
+            temp.push(el);
+        }
+        for(var el in temp){
+            cache.push(el);
+            el.detach();
+        }
+        // 计算所有浏览过的节点的个数
+        if (ul.first && ul.first.@#idx.toInteger() > bsn ) {
+            bsn = ul.first.@#idx.toInteger();
+        }
+        // 设置并储存marginTop
+        if (marginTop) {
+          ul.first.style#margin-top = px(marginTop);
+          ul.@#mt = marginTop;
+        }
+      }
+
+      // buffer_start = bsn = Integer.max(bsn-2,0);
+      bsn = Integer.max(bsn-2,0);
+      // 取得detach后list剩余节点个数
       var list_length = getListLength();
+      // records从第几条数据开始取值
       var ni = bsn + list_length ;
       var niend = Integer.min(ni + BUFFER_SIZE - list_length, records.length);
+      // stdout.println("ni,niend",ni,niend);
+
       for( var i = ni; i < niend; ++i )
       {
           var rec = recordAt(i);
           var t = createRecViewer(rec);
-          // list.append(t);
+          t.@#idx = i;
           appends(t);
           // setupRecordObserver(rec,t);
           showRecord(i,rec,t);
       }
+      list.update();
     }
 
     function pumpBefore() {
       stdout.println("pumpBefore");
-      // return;
+      var bsn = 0;  //所有浏览过的节点的个数
+      var bottom = 0; //每一列的节点的底部距父节点的距离，判断是否应detach
+      var temp = [];
+      var marginTop = undefined;  //detach之前节点后，维持当前节点的位置，即是说，每一列是由marginTop撑开的
+      for ( var ul in list.$$(ul) ){
+        temp = []; // 临时储存应detach的节点，不能在循环中detach，否则无法获取marginTop
+        for ( var el in ul.$$(li) ){
+          
+        }
+      }
+      return;
       if ( buffer_start < 0 ) {
         return;
       }
@@ -223,47 +280,32 @@ function VirtualList(params) {
     // }
     function wheelUp(){
       var sy = 0;
+      var bottom = 0;
       for ( var ul in list.$$(ul) ){
+        bottom = Integer.max(bottom, ul.first.box(#bottom, #border, #parent) );
         sy = ul.scroll(#top);
-        // stdout.println("sy",sy);
-        ul.scrollTo(0, sy - 30);
+        ul.scrollTo(0, sy - 30, false, true);
+      }
+      if (bottom > 0) {
+        stdout.println("bottom",bottom);
+        pumpBefore(1);
       }
       return;
-      for ( var el in list.$$(li) ){
-        el.style#top = px( el.style#top.toFloat() + 30 );
-      }
-      for(var j=0; j<column.length;j++){
-        column[j]["up"]["top"] += 30;
-        column[j]["dn"]["top"] += 30;
-      }
-      stdout.println("up",minPos.up,column[minPos.up]["up"]["top"]);
-      // stdout.println( JSON.stringify(column, "  "));
-      if ( column[minPos.up]["up"]["top"] > -1*offset) {
-        pumpBefore();
-      }
     }
     function wheelDown(){
       var sy = 0;
+      var top = 99999;
       for ( var ul in list.$$(ul) ){
+        top = Integer.min(top, ul.last.box(#top, #border, #parent) );
         sy = ul.scroll(#top);
-        // stdout.println("sy",sy);
-        ul.scrollTo(0, sy + 30);
-      }
-      return;
-      for ( var el in list.$$(li) ){
-        el.style#top = px( el.style#top.toFloat() - 30 );
-      }
-      for(var j=0; j<column.length;j++){
-        column[j]["up"]["top"] -= 30;
-        column[j]["dn"]["top"] -= 30;
-      }
-      // stdout.println("dn",minPos.dn,column[minPos.dn]["dn"]["top"]);
-      // stdout.println("xx",list_height, column[minPos.dn]["dn"]["top"]);
-      // stdout.println("dn",column[minPos.dn]["up"]["top"]);
-      if ( column[minPos.dn]["dn"]["top"] < list_height + offset) {
-        pumpAfter();
+        ul.scrollTo(0, sy + 30, false, true);
       }
 
+      if (top-list_height < 0) {
+        stdout.println("top",top-list_height);
+        pumpAfter(1);
+      }
+      return;
     }
     function mousewheel(evt) {
         if (evt.wheelDelta < 0) {
