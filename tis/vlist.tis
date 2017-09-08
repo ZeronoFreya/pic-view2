@@ -138,6 +138,30 @@ function VirtualList(params) {
         }
       }
       min_column.append(el);
+      return min_column.@#idx;
+    }
+    function prepends(el, record){
+      list.$(ul[idx={record.belongColumn}]).prepend(el);
+      return;
+      // var (x1,y1,x2,y2) = 0;
+      // var first;
+      // var max = -9999;
+      // var max_column;
+      // for( var ul in list.$$(ul) ){
+      //   if(first = ul.first){
+      //     (x1,y1,x2,y2) = first.box(#rect, #border, #parent);
+      //     // stdout.println("y1",y1,max);
+      //     if (y1 > max) {
+      //         max = y1;
+      //         max_column = ul;
+      //     }
+      //   }else{
+      //       max_column = ul;
+      //       break;
+      //   }
+      // }
+      // // stdout.println("max_column",max_column.@#idx);
+      // max_column.prepend(el);
     }
     function getListLength(){
       var i = 0;
@@ -178,8 +202,11 @@ function VirtualList(params) {
             el.detach();
         }
         // 计算所有浏览过的节点的个数
-        if (ul.first && ul.first.@#idx.toInteger() > bsn ) {
+        if ( ul.first ) {
+          bsn = 9999;
+          if (ul.first.@#idx.toInteger() < bsn) {
             bsn = ul.first.@#idx.toInteger();
+          }
         }
         // 设置并储存marginTop
         if (marginTop) {
@@ -189,22 +216,26 @@ function VirtualList(params) {
       }
 
       // buffer_start = bsn = Integer.max(bsn-2,0);
-      bsn = Integer.max(bsn-2,0);
+      // bsn = Integer.max(bsn,0);
       // 取得detach后list剩余节点个数
       var list_length = getListLength();
       // records从第几条数据开始取值
-      var ni = bsn + list_length ;
+      var ni = Integer.max( bsn + list_length, 0 ) ;
       var niend = Integer.min(ni + BUFFER_SIZE - list_length, records.length);
       // stdout.println("ni,niend",ni,niend);
-
+      var (elHeight,belongColumn) = 0;
       for( var i = ni; i < niend; ++i )
       {
           var rec = recordAt(i);
           var t = createRecViewer(rec);
           t.@#idx = i;
-          appends(t);
+          belongColumn = appends(t);
           // setupRecordObserver(rec,t);
           showRecord(i,rec,t);
+          elHeight = t.box(#height, #border, #self);
+          rec["elHeight"] = elHeight;
+          rec["belongColumn"] = belongColumn;
+          // stdout.println("xxx",i,elHeight);
       }
       list.update();
     }
@@ -215,58 +246,53 @@ function VirtualList(params) {
       var bottom = 0; //每一列的节点的底部距父节点的距离，判断是否应detach
       var temp = [];
       var marginTop = undefined;  //detach之前节点后，维持当前节点的位置，即是说，每一列是由marginTop撑开的
+      var el;
       for ( var ul in list.$$(ul) ){
-        temp = []; // 临时储存应detach的节点，不能在循环中detach，否则无法获取marginTop
-        for ( var el in ul.$$(li) ){
-          
-        }
-      }
-      return;
-      if ( buffer_start < 0 ) {
-        return;
-      }
-      // var bsn = 0;
-      var (x1,y1,x2,y2) = 0;
-      // var i = 0;
-      // var flag = 1;
-      for ( var el in list.$$(li) ){
-        stdout.println("t");
-        // if (flag > column.length) {
-        //   break;
+        // temp = []; // 临时储存应detach的节点，不能在循环中detach，否则无法获取marginTop
+        // for ( var el in ul.$$(li) ){
         // }
-        (x1,y1,x2,y2) = el.box(#rect, #border, #parent);
-        if (y1 > list_height + offset) {
-          cache.push(el);
-          el.detach();
-          // bsn++;
-          // flag = 1;
-        }else {
-          // flag++;
+        // marginTop = ul.first.style#margin-top.toInteger();
+        marginTop = Math.abs( ul.first.box(#top, #border, #parent) );
+        ul.@#mt = marginTop;
+        ul.first.style#margin-top = undefined;
+        while( ul.length ){
+          el = ul.last;
+          if ( el.box(#top, #border, #parent) > list_height ) {
+              cache.push(el);
+              el.detach();
+              continue;
+          }
+          break;
+        }
+
+        // 计算所有浏览过的节点的个数
+        if ( ul.first ) {
+          bsn = 9999;
+          if (ul.first.@#idx.toInteger() < bsn) {
+            bsn = ul.first.@#idx.toInteger();
+          }
         }
       }
-      list.timer(1s,dogc);
-
-      stdout.println("buffer_start",buffer_start);
-      var ni = Integer.max(buffer_start - 2*BUFFER_SIZE + list.length, 0);
-      var niend = ni + BUFFER_SIZE - list.length - 1;
-
-      buffer_start = niend + list.length+1;
-      stdout.println("before",ni,niend,buffer_start);
-      // return;
-      for( var i = ni; i < niend; ++i )
-      {
-        var rec = recordAt(i);
-        var t = createRecViewer(rec);
-        list.prepend(t);
-        // setupRecordObserver(rec,t);
-        showRecord(i,rec,t);
-        setPosition2( t );
-        // buffer_start++;
+      // bsn = Integer.max(bsn-1,0);
+      // 取得detach后list剩余节点个数
+      var list_length = getListLength();
+      var ni = Integer.max(bsn-1,0) ;
+      var niend = Integer.max(ni - BUFFER_SIZE + list_length, 0);
+      stdout.println("list_length,ni,niend",list_length,ni,niend);
+      for(var i=ni; i>niend; i--){
+          var rec = recordAt(i);
+          var t = createRecViewer(rec);
+          t.@#idx = i;
+          prepends(t,rec);
+          // setupRecordObserver(rec,t);
+          showRecord(i,rec,t);
       }
-      minPos = {
-        up: getMinColumn("up"),
-        dn: getMinColumn("dn")
+      for ( var ul in list.$$(ul) ){
+        marginTop = Math.abs( ul.first.box(#top, #border, #parent) );
+        marginTop -= ul.@#mt.toInteger();
       }
+      list.update();
+      return;
     }
     // list.onSize = function()
     // {
