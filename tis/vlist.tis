@@ -120,7 +120,11 @@ function VirtualList(params) {
         // contain_height = el.box(#height, #border, #self).toInteger();
         column[column_index]["up"]["top"] -= elh;
     }
-    function appends(el){
+    function appends(el, record){
+      if (record["elHeight"] && record["belongColumn"]) {
+        list.$(ul[idx={record.belongColumn}]).append(el);
+        return -1;
+      }
       var (x1,y1,x2,y2) = 0;
       var last;
       var min = 99999;
@@ -172,7 +176,7 @@ function VirtualList(params) {
     }
     function pumpAfter(i) {
 
-      var bsn = 0;  //所有浏览过的节点的个数
+      var bsn = 9999;  //所有浏览过的节点的个数
       var bottom = 0; //每一列的节点的底部距父节点的距离，判断是否应detach
       var temp = [];
       var marginTop = undefined;  //detach之前节点后，维持当前节点的位置，即是说，每一列是由marginTop撑开的
@@ -203,10 +207,11 @@ function VirtualList(params) {
         }
         // 计算所有浏览过的节点的个数
         if ( ul.first ) {
-          bsn = 9999;
           if (ul.first.@#idx.toInteger() < bsn) {
             bsn = ul.first.@#idx.toInteger();
           }
+        }else{
+          bsn = 0;
         }
         // 设置并储存marginTop
         if (marginTop) {
@@ -229,9 +234,12 @@ function VirtualList(params) {
           var rec = recordAt(i);
           var t = createRecViewer(rec);
           t.@#idx = i;
-          belongColumn = appends(t);
+          belongColumn = appends(t, rec);
           // setupRecordObserver(rec,t);
           showRecord(i,rec,t);
+          if ( rec["elHeight"] && rec["belongColumn"] ) {
+            continue;
+          }
           elHeight = t.box(#height, #border, #self);
           rec["elHeight"] = elHeight;
           rec["belongColumn"] = belongColumn;
@@ -242,7 +250,7 @@ function VirtualList(params) {
 
     function pumpBefore() {
       stdout.println("pumpBefore");
-      var bsn = 0;  //所有浏览过的节点的个数
+      var bsn = 9999;  //所有浏览过的节点的个数
       var bottom = 0; //每一列的节点的底部距父节点的距离，判断是否应detach
       var temp = [];
       var marginTop = undefined;  //detach之前节点后，维持当前节点的位置，即是说，每一列是由marginTop撑开的
@@ -252,9 +260,12 @@ function VirtualList(params) {
         // for ( var el in ul.$$(li) ){
         // }
         // marginTop = ul.first.style#margin-top.toInteger();
-        marginTop = Math.abs( ul.first.box(#top, #border, #parent) );
+        marginTop = ul.first.box(#top, #border, #parent);
+        // stdout.println("marginTop",marginTop);
         ul.@#mt = marginTop;
+        ul.@#lf = ul.first.@#idx;
         ul.first.style#margin-top = undefined;
+
         while( ul.length ){
           el = ul.last;
           if ( el.box(#top, #border, #parent) > list_height ) {
@@ -267,10 +278,12 @@ function VirtualList(params) {
 
         // 计算所有浏览过的节点的个数
         if ( ul.first ) {
-          bsn = 9999;
+          // stdout.println("ub",ul.first.@#idx.toInteger() , bsn);
           if (ul.first.@#idx.toInteger() < bsn) {
             bsn = ul.first.@#idx.toInteger();
           }
+        }else{
+          bsn = 0;
         }
       }
       // bsn = Integer.max(bsn-1,0);
@@ -278,18 +291,27 @@ function VirtualList(params) {
       var list_length = getListLength();
       var ni = Integer.max(bsn-1,0) ;
       var niend = Integer.max(ni - BUFFER_SIZE + list_length, 0);
-      stdout.println("list_length,ni,niend",list_length,ni,niend);
-      for(var i=ni; i>niend; i--){
+      // stdout.println("list_length,ni,niend",list_length,ni,niend);
+      for(var i=ni; i>=niend; i--){
           var rec = recordAt(i);
           var t = createRecViewer(rec);
           t.@#idx = i;
           prepends(t,rec);
           // setupRecordObserver(rec,t);
           showRecord(i,rec,t);
+          
       }
+      list.update();
+      var lastFirst;
+      var eee=0;
       for ( var ul in list.$$(ul) ){
-        marginTop = Math.abs( ul.first.box(#top, #border, #parent) );
-        marginTop -= ul.@#mt.toInteger();
+        lastFirst = ul.$(li[idx={ul.@#lf}]);
+        eee = lastFirst.box(#top, #border, #parent);
+        marginTop = Math.abs( eee - ul.@#mt.toInteger() );
+        // stdout.println("eee",ul.@#mt,eee,marginTop);
+        // marginTop -= ul.@#mt.toInteger();
+        ul.first.style#margin-top = px(marginTop);
+        ul.@#mt = marginTop;
       }
       list.update();
       return;
