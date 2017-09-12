@@ -174,12 +174,64 @@ function VirtualList(params) {
       }
       return i;
     }
-    function pumpAfter(i) {
-      var marginTop = undefined;
+    function getDetachCount(){
+      //获取所有detach的元素个数
+      var c = records.length; //取一个大值，此处只作比值
+      var el;
+      for ( var ul in list.$$(ul) ){
+        if ( el = ul.first ) {
+          if (el.@#idx.toInteger() < c) {
+            //取得各列中最小的idx，由于下标从0开始，idx值即为当前元素之前元素个数
+            c = el.@#idx.toInteger();
+          }
+        }
+      }
+      if (c == records.length) {
+        c = 0;
+      }
+      return c;
+    }
+    function detachToCache(ii) {
+      stdout.println("ii",ii);
+      var temp = {};
+      var tempKey=[];
+      var bottom = 0;
+      var el;
+      for ( var ul in list.$$(ul) ){
+        for( var el in ul.$$(li)){
+          bottom = el.box(#bottom, #border, #parent) ;
+          if (bottom > 0) break;
+          temp[bottom] = el;
+          tempKey.push(bottom);
+        }
+      }
+      if (tempKey == []) return ii;
+      // var list_length = getListLength();
+
+      var iii = tempKey.length;
+      var ofst = 0;
+      ii += iii;
+      stdout.println("iii 1",iii);
+      if (ii+BUFFER_SIZE > records.length) {
+        ofst = ii + BUFFER_SIZE - records.length;
+        iii -= ofst;
+        ii -= ofst;
+      }
+      stdout.println("iii 2",iii);
+      tempKey = tempKey.sort();
+      for(var i=0;i<iii;i++){
+        stdout.println("k",tempKey[i]);
+        el = temp[tempKey[i]];
+        cache.push(el);
+        el.detach();
+      }
+      return ii;
+    }
+    function aaaa(){
       var bso = buffer_start;
       var el, bottom;
       var a = 0;
-      i = records.length;
+      var i = records.length;
       for ( var ul in list.$$(ul) ){
         if ( el = ul.first ) {
           if (el.@#idx.toInteger() < i) {
@@ -199,39 +251,23 @@ function VirtualList(params) {
       }else{
         i = 0;
       }
-
-      for ( var ul in list.$$(ul) )
-      {
-          if (!ul.first) break;
-          marginTop = ul.last.box(#top, #border, #parent);
-          ul.@#mt = marginTop;
-          ul.@#lf = ul.last.@#idx;
-      }
-      stdout.println("i0",i);
       if(i + BUFFER_SIZE > records.length)
         i = Integer.max(0, records.length - BUFFER_SIZE + 1);
-      stdout.println("i1",i);
+      // stdout.println("i1",i);
       var bsn = buffer_start = i;
-      var top = -1;
-      for( var i = bso; i < bsn; ++i){
-        // if (!list.first) break;
-        for ( var ul in list.$$(ul) ){
-          if ( ul.first.box(#top, #border, #parent)*-1 > top ) {
-            top = ul.first.box(#top, #border, #parent) ;
-            el = ul.first;
-          }
-        }
-        marginTop = el.style#margin-top.toInteger() + Math.abs( el.next.box(#height, #border, #self) );
-        el.style#margin-top = undefined;
-        cache.push(el);
-        el.detach();
-        ul.first#margin-top = px(marginTop);
-      }
       var list_length = getListLength();
-      stdout.println("bsn,list_length",bsn,list_length,buffer_start);
       var ni = bsn + list_length;
       var niend = Integer.min(ni + BUFFER_SIZE - list_length, records.length);
-      stdout.println("ni,niend",ni,niend);
+      stdout.println("ni,niend 1",ni,niend);
+    }
+    function pumpAfter(i) {
+      // aaaa();
+      i = detachToCache( getDetachCount() );
+      var bsn = buffer_start = i;
+      var list_length = getListLength();
+      var ni = bsn + list_length;
+      var niend = Integer.min(ni + BUFFER_SIZE - list_length, records.length);
+      stdout.println("ni,niend 1",ni,niend);
       var (elHeight,belongColumn) = 0;
       for( var i = ni; i < niend; ++i )
       {
@@ -249,21 +285,9 @@ function VirtualList(params) {
           rec["belongColumn"] = belongColumn;
           // stdout.println("xxx",i,elHeight);
       }
-      var lastLast;
-      var eee=0;
-      for ( var ul in list.$$(ul) ){
-          lastLast = ul.$(li[idx={ul.@#lf}]);
-          if (!lastLast) break;
-          eee = lastLast.box(#top, #border, #parent);
-          marginTop = Math.abs( eee - ul.@#mt.toInteger() );
-          // stdout.println("eee",ul.@#mt,eee,marginTop);
-          // marginTop -= ul.@#mt.toInteger();
-          ul.first.style#margin-top = px(marginTop);
-          ul.@#mt = marginTop;
-      }
       list.update();
       return;
-/*
+      /*
       var bsn = 9999;  //所有浏览过的节点的个数
       var bottom = 0; //每一列的节点的底部距父节点的距离，判断是否应detach
       var temp = [];
@@ -315,7 +339,7 @@ function VirtualList(params) {
       // records从第几条数据开始取值
       var ni = Integer.max( bsn + list_length, 0 ) ;
       var niend = Integer.min(ni + BUFFER_SIZE - list_length, records.length);
-      // stdout.println("ni,niend",ni,niend);
+      stdout.println("ni,niend 2",ni,niend);
       var (elHeight,belongColumn) = 0;
       for( var i = ni; i < niend; ++i )
       {
@@ -334,7 +358,7 @@ function VirtualList(params) {
           // stdout.println("xxx",i,elHeight);
       }
       list.update();
-      */
+*/
     }
 
     function pumpBefore() {
