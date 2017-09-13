@@ -125,15 +125,17 @@ function VirtualList(params) {
         list.$(ul[idx={record.belongColumn}]).append(el);
         return -1;
       }
-      var (x1,y1,x2,y2) = 0;
+      // var (x1,y1,x2,y2) = 0;
       var last;
+      var bottom = 0;
       var min = 99999;
       var min_column;
       for( var ul in list.$$(ul) ){
         if(last = ul.last){
-          (x1,y1,x2,y2) = last.box(#rect, #border, #parent);
-          if (y2 < min) {
-              min = y2;
+          // (x1,y1,x2,y2) = last.box(#rect, #border, #parent);
+          bottom = last.box(#bottom, #border, #parent) ;
+          if (bottom < min) {
+              min = bottom;
               min_column = ul;
           }
         }else{
@@ -176,6 +178,7 @@ function VirtualList(params) {
     }
     function getDetachCount(){
       //获取所有detach的元素个数
+      if (!list.first.first) return 0;
       var c = records.length; //取一个大值，此处只作比值
       var el;
       for ( var ul in list.$$(ul) ){
@@ -186,9 +189,9 @@ function VirtualList(params) {
           }
         }
       }
-      if (c == records.length) {
-        c = 0;
-      }
+      // if (c == records.length) {
+      //   c = 0;
+      // }
       return c;
     }
     function detachToCache(ii) {
@@ -260,14 +263,53 @@ function VirtualList(params) {
       var niend = Integer.min(ni + BUFFER_SIZE - list_length, records.length);
       stdout.println("ni,niend 1",ni,niend);
     }
+    function q1q2(q1){
+      // if (q1 == 0) return 0;
+      var temp = {};
+      var tempKey=[];
+      var bottom = 0;
+      var el;
+      
+      for ( var ul in list.$$(ul) ){
+        for( el in ul.$$(li)){
+          bottom = el.box(#bottom, #border, #parent);
+          if (bottom > 0) break;
+          temp[bottom] = el;
+          tempKey.push(bottom);
+        }
+        if (el) {
+          ul.@#mt = bottom;
+          ul.@#lf = el.@#idx;
+          // ul.first.style#margin-top = undefined;
+        }
+      }
+      if (tempKey == []) return 0;
+      tempKey = tempKey.sort();
+      var c = tempKey.length;
+      stdout.println("cache的个数：", c);
+      if( q1 + BUFFER_SIZE + c > records.length ){
+          c = Integer.min( records.length - q1 - BUFFER_SIZE , c );
+      }
+      stdout.println("实际cache的个数：", c);
+      for( var i=0; i<c; i++ ){
+        el = temp[tempKey[i]];
+        el.style#margin-top = undefined;
+        cache.push(el);
+        el.detach();
+      }
+      return Integer.max(c,0);
+    }
     function pumpAfter(i) {
-      // aaaa();
-      i = detachToCache( getDetachCount() );
-      var bsn = buffer_start = i;
+      // 所有浏览过且被移除的节点
+      var q1 = getDetachCount();
+      stdout.println("1. q1",q1);
+      // 需要移除的节点
+      var q2 = q1q2(q1);
       var list_length = getListLength();
-      var ni = bsn + list_length;
+      stdout.println("list_length, q2",list_length, q2);
+      var ni = Integer.min( q1 + q2 + list_length, records.length );
       var niend = Integer.min(ni + BUFFER_SIZE - list_length, records.length);
-      stdout.println("ni,niend 1",ni,niend);
+      stdout.println("ni,niend",ni,niend);
       var (elHeight,belongColumn) = 0;
       for( var i = ni; i < niend; ++i )
       {
@@ -285,6 +327,22 @@ function VirtualList(params) {
           rec["belongColumn"] = belongColumn;
           // stdout.println("xxx",i,elHeight);
       }
+      if (elHeight) {
+        var targetEl;
+        var eee=0;
+        var marginTop = undefined;
+        for ( var ul in list.$$(ul) ){
+          targetEl = ul.$(li[idx={ul.@#lf}]);
+          if (!targetEl) break;
+          eee = targetEl.box(#bottom, #border, #parent);
+          marginTop = Math.abs( eee - ul.@#mt.toInteger() );
+          // stdout.println("eee",ul.@#mt,eee,marginTop);
+          // marginTop -= ul.@#mt.toInteger();
+          ul.first.style#margin-top = px(marginTop);
+          ul.@#mt = marginTop;
+        }
+      }
+      
       list.update();
       return;
       /*
@@ -362,6 +420,7 @@ function VirtualList(params) {
     }
 
     function pumpBefore() {
+      return;
       stdout.println("pumpBefore");
       var bsn = 9999;  //所有浏览过的节点的个数
       var bottom = 0; //每一列的节点的底部距父节点的距离，判断是否应detach
@@ -463,7 +522,7 @@ function VirtualList(params) {
       }
 
       if (top-list_height < 0) {
-        stdout.println("top",top-list_height);
+        // stdout.println("top",top-list_height);
         pumpAfter(1);
       }
       return;
