@@ -342,6 +342,7 @@ function VirtualList(params) {
           if (vc == {}) break;
           if (ul.first.style#margin-top != undefined) continue;
           referEl = ul.$(li[idx={vc.referElI}]);
+          assert referEl;
           // stdout.println("targetEl",targetEl.@#idx);
           eee = referEl.box(#bottom, #border, #parent);
           marginTop = Math.abs( eee - vc.referElB );
