@@ -37,7 +37,7 @@ function VirtualList(params) {
     // var   posUp = { top : 0, left : 0 };
     // var   posDn = { top : 0, left : 0 };
     var   img_width = 200;
-    var   list_height = list.box(#height, #border, #self).toInteger();
+    // var   list_height = list.box(#height, #border, #self).toInteger();
     var   column = {
       0 : {
         up : { top : 0, left : 0 },
@@ -55,15 +55,23 @@ function VirtualList(params) {
         last:0
       }
     };
+    var _VL = {
+      "isNull" : 1,
+      "scrollUp" : 1,
+      "scrollDn" : 1,
+      "height" : list.box(#height, #border, #self).toInteger(),
+      "dataStart" : 0,
+      "column" :{}
+    };
     var minPos = {up:0,dn:0}
     function dogc() { gc(); }
-    // stdout.println(template.outerHtml);
+    // // stdout.println(template.outerHtml);
     //multiselection support (not yet)
     //var   selected = params.multiselect ? {} : null; // ATTENTION: if multiselect then each record must have unique .id field
     var   setupSetObserver;
-    // stdout.println(list.length);
+    // // stdout.println(list.length);
     function recordAt(n) {
-      // stdout.println("recordAt");
+      // // stdout.println("recordAt");
       var r = records[n];
       // if(!r && recordData ) {
       //   setupSetObserver(false, true);
@@ -79,11 +87,11 @@ function VirtualList(params) {
               column_index = j;
           }
         }
-        // stdout.println("ox",column_index);
+        // // stdout.println("ox",column_index);
         return column_index;
     }
     function createRecViewer(rec) {
-      // stdout.println("createRecViewer");
+      // // stdout.println("createRecViewer");
       var t = cache.pop() || template.clone();
       // assert !t.state.current;
       // t.data = rec;
@@ -94,7 +102,7 @@ function VirtualList(params) {
       //决定应该添加到哪一列
         var column_index = getMinColumn("dn");
         var idx = column[column_index]["last"];
-        // stdout.println("column_index",column_index);
+        // // stdout.println("column_index",column_index);
         el.@#column = column_index;
         el.@#idx = idx;
         el.$(span).text = "column: "+column_index+" idx: "+idx;
@@ -110,7 +118,7 @@ function VirtualList(params) {
     function setPosition2( el ) {
       //决定应该添加到哪一列
         var column_index = getMinColumn("up");
-        // stdout.println("column_index",column_index);
+        // // stdout.println("column_index",column_index);
         var elh = el.box(#height, #border, #self).toInteger() + 10;
         el.style.set{
           width : px(img_width),
@@ -156,7 +164,7 @@ function VirtualList(params) {
       // for( var ul in list.$$(ul) ){
       //   if(first = ul.first){
       //     (x1,y1,x2,y2) = first.box(#rect, #border, #parent);
-      //     // stdout.println("y1",y1,max);
+      //     // // stdout.println("y1",y1,max);
       //     if (y1 > max) {
       //         max = y1;
       //         max_column = ul;
@@ -166,7 +174,7 @@ function VirtualList(params) {
       //       break;
       //   }
       // }
-      // // stdout.println("max_column",max_column.@#idx);
+      // // // stdout.println("max_column",max_column.@#idx);
       // max_column.prepend(el);
     }
     function getListLength(){
@@ -178,6 +186,7 @@ function VirtualList(params) {
     }
     function getDetachCount(){
       //获取所有detach的元素个数
+      // _VL.dataStart;
       if (!list.first.first) return 0;
       var c = records.length; //取一个大值，此处只作比值
       var el;
@@ -194,81 +203,81 @@ function VirtualList(params) {
       // }
       return c;
     }
-    function detachToCache(ii) {
-      stdout.println("ii",ii);
-      var temp = {};
-      var tempKey=[];
-      var bottom = 0;
-      var el;
-      for ( var ul in list.$$(ul) ){
-        for( var el in ul.$$(li)){
-          bottom = el.box(#bottom, #border, #parent) ;
-          if (bottom > 0) break;
-          temp[bottom] = el;
-          tempKey.push(bottom);
-        }
-      }
-      if (tempKey == []) return ii;
-      // var list_length = getListLength();
+    // function detachToCache(ii) {
+    //   // stdout.println("ii",ii);
+    //   var temp = {};
+    //   var tempKey=[];
+    //   var bottom = 0;
+    //   var el;
+    //   for ( var ul in list.$$(ul) ){
+    //     for( var el in ul.$$(li)){
+    //       bottom = el.box(#bottom, #border, #parent) ;
+    //       if (bottom > 0) break;
+    //       temp[bottom] = el;
+    //       tempKey.push(bottom);
+    //     }
+    //   }
+    //   if (tempKey == []) return ii;
+    //   // var list_length = getListLength();
 
-      var iii = tempKey.length;
-      var ofst = 0;
-      ii += iii;
-      stdout.println("iii 1",iii);
-      if (ii+BUFFER_SIZE > records.length) {
-        ofst = ii + BUFFER_SIZE - records.length;
-        iii -= ofst;
-        ii -= ofst;
-      }
-      stdout.println("iii 2",iii);
-      tempKey = tempKey.sort();
-      for(var i=0;i<iii;i++){
-        stdout.println("k",tempKey[i]);
-        el = temp[tempKey[i]];
-        cache.push(el);
-        el.detach();
-      }
-      return ii;
-    }
-    function aaaa(){
-      var bso = buffer_start;
-      var el, bottom;
-      var a = 0;
-      var i = records.length;
-      for ( var ul in list.$$(ul) ){
-        if ( el = ul.first ) {
-          if (el.@#idx.toInteger() < i) {
-            i = el.@#idx.toInteger();
-          }
-          for( el in ul.$$(li)){
-            bottom = el.box(#bottom, #border, #parent) ;
-            if (bottom > 0) {
-              break;
-            }
-            a++;
-          }
-        }
-      }
-      if (i<records.length) {
-        i += a;
-      }else{
-        i = 0;
-      }
-      if(i + BUFFER_SIZE > records.length)
-        i = Integer.max(0, records.length - BUFFER_SIZE + 1);
-      // stdout.println("i1",i);
-      var bsn = buffer_start = i;
-      var list_length = getListLength();
-      var ni = bsn + list_length;
-      var niend = Integer.min(ni + BUFFER_SIZE - list_length, records.length);
-      stdout.println("ni,niend 1",ni,niend);
-    }
-    function q1q2(q1){
+    //   var iii = tempKey.length;
+    //   var ofst = 0;
+    //   ii += iii;
+    //   // stdout.println("iii 1",iii);
+    //   if (ii+BUFFER_SIZE > records.length) {
+    //     ofst = ii + BUFFER_SIZE - records.length;
+    //     iii -= ofst;
+    //     ii -= ofst;
+    //   }
+    //   // stdout.println("iii 2",iii);
+    //   tempKey = tempKey.sort();
+    //   for(var i=0;i<iii;i++){
+    //     // stdout.println("k",tempKey[i]);
+    //     el = temp[tempKey[i]];
+    //     cache.push(el);
+    //     el.detach();
+    //   }
+    //   return ii;
+    // }
+    // function aaaa(){
+    //   var bso = buffer_start;
+    //   var el, bottom;
+    //   var a = 0;
+    //   var i = records.length;
+    //   for ( var ul in list.$$(ul) ){
+    //     if ( el = ul.first ) {
+    //       if (el.@#idx.toInteger() < i) {
+    //         i = el.@#idx.toInteger();
+    //       }
+    //       for( el in ul.$$(li)){
+    //         bottom = el.box(#bottom, #border, #parent) ;
+    //         if (bottom > 0) {
+    //           break;
+    //         }
+    //         a++;
+    //       }
+    //     }
+    //   }
+    //   if (i<records.length) {
+    //     i += a;
+    //   }else{
+    //     i = 0;
+    //   }
+    //   if(i + BUFFER_SIZE > records.length)
+    //     i = Integer.max(0, records.length - BUFFER_SIZE + 1);
+    //   // // stdout.println("i1",i);
+    //   var bsn = buffer_start = i;
+    //   var list_length = getListLength();
+    //   var ni = bsn + list_length;
+    //   var niend = Integer.min(ni + BUFFER_SIZE - list_length, records.length);
+    //   // stdout.println("ni,niend 1",ni,niend);
+    // }
+    function detachToCache(vds){
       // if (q1 == 0) return 0;
       var temp = {};
       var tempKey=[];
       var bottom = 0;
-      var el;
+      var el, vc;
       
       for ( var ul in list.$$(ul) ){
         for( el in ul.$$(li)){
@@ -278,38 +287,71 @@ function VirtualList(params) {
           tempKey.push(bottom);
         }
         if (el) {
-          ul.@#mt = bottom;
-          ul.@#lf = el.@#idx;
+          vc = _VL.column[ul.@#idx];
+          // if (!vc) vc = {};
+          vc["referElB"] = bottom;
+          vc["referElI"] = el.@#idx;
+          // ul.@#mt = bottom;
+          // ul.@#lf = el.@#idx;
           // ul.first.style#margin-top = undefined;
         }
       }
       if (tempKey == []) return 0;
       tempKey = tempKey.sort();
       var c = tempKey.length;
-      stdout.println("cache的个数：", c);
-      if( q1 + BUFFER_SIZE + c > records.length ){
-          c = Integer.min( records.length - q1 - BUFFER_SIZE , c );
+      // stdout.println("cache的个数：", c);
+      if( vds + BUFFER_SIZE + c > records.length ){
+          c = Integer.min( records.length - vds - BUFFER_SIZE , c );
       }
-      stdout.println("实际cache的个数：", c);
+      // stdout.println("实际cache的个数：", c);
       for( var i=0; i<c; i++ ){
         el = temp[tempKey[i]];
         el.style#margin-top = undefined;
         cache.push(el);
         el.detach();
       }
+      list.update();
       return Integer.max(c,0);
     }
     function pumpAfter(i) {
-      // 所有浏览过且被移除的节点
-      var q1 = getDetachCount();
-      stdout.println("1. q1",q1);
-      // 需要移除的节点
-      var q2 = q1q2(q1);
-      var list_length = getListLength();
-      stdout.println("list_length, q2",list_length, q2);
-      var ni = Integer.min( q1 + q2 + list_length, records.length );
+      // 所有浏览过且被移除的节点个数
+      // var q1 = getDetachCount();
+      var vds = _VL.dataStart;
+      stdout.println("1. vds",vds);
+      // 需要移除的节点个数
+      var q2 = detachToCache(vds);
+      _VL.dataStart += q2;
+      // var list_length = getListLength();
+      var list_length = BUFFER_SIZE - q2;
+      if (_VL.isNull == 1)
+        list_length = _VL.isNull = 0;
+
+      stdout.println("q2", q2);
+      var ni = Integer.min( vds + q2 + list_length, records.length );
       var niend = Integer.min(ni + BUFFER_SIZE - list_length, records.length);
       stdout.println("ni,niend",ni,niend);
+
+      if (ni < niend) {
+        var referEl;
+        var eee=0;
+        var marginTop = undefined;
+        var vc;
+        for ( var ul in list.$$(ul) ){
+
+          vc = _VL.column[ul.@#idx];
+          if (vc == {}) break;
+          if (ul.first.style#margin-top != undefined) continue;
+          referEl = ul.$(li[idx={vc.referElI}]);
+          // stdout.println("targetEl",targetEl.@#idx);
+          eee = referEl.box(#bottom, #border, #parent);
+          marginTop = Math.abs( eee - vc.referElB );
+          stdout.println("eee, ul.@#mt",eee, vc.referElB);
+          // marginTop -= ul.@#mt.toInteger();
+          ul.first.style#margin-top = px(marginTop);
+          // ul.@#mt = marginTop;
+        }
+        list.update();
+      }
       var (elHeight,belongColumn) = 0;
       for( var i = ni; i < niend; ++i )
       {
@@ -325,24 +367,9 @@ function VirtualList(params) {
           elHeight = t.box(#height, #border, #self);
           rec["elHeight"] = elHeight;
           rec["belongColumn"] = belongColumn;
-          // stdout.println("xxx",i,elHeight);
+          // // stdout.println("xxx",i,elHeight);
       }
-      if (elHeight) {
-        var targetEl;
-        var eee=0;
-        var marginTop = undefined;
-        for ( var ul in list.$$(ul) ){
-          targetEl = ul.$(li[idx={ul.@#lf}]);
-          if (!targetEl) break;
-          eee = targetEl.box(#bottom, #border, #parent);
-          marginTop = Math.abs( eee - ul.@#mt.toInteger() );
-          // stdout.println("eee",ul.@#mt,eee,marginTop);
-          // marginTop -= ul.@#mt.toInteger();
-          ul.first.style#margin-top = px(marginTop);
-          ul.@#mt = marginTop;
-        }
-      }
-      
+
       list.update();
       return;
       /*
@@ -397,7 +424,7 @@ function VirtualList(params) {
       // records从第几条数据开始取值
       var ni = Integer.max( bsn + list_length, 0 ) ;
       var niend = Integer.min(ni + BUFFER_SIZE - list_length, records.length);
-      stdout.println("ni,niend 2",ni,niend);
+      // stdout.println("ni,niend 2",ni,niend);
       var (elHeight,belongColumn) = 0;
       for( var i = ni; i < niend; ++i )
       {
@@ -413,7 +440,7 @@ function VirtualList(params) {
           elHeight = t.box(#height, #border, #self);
           rec["elHeight"] = elHeight;
           rec["belongColumn"] = belongColumn;
-          // stdout.println("xxx",i,elHeight);
+          // // stdout.println("xxx",i,elHeight);
       }
       list.update();
 */
@@ -421,7 +448,7 @@ function VirtualList(params) {
 
     function pumpBefore() {
       return;
-      stdout.println("pumpBefore");
+      // stdout.println("pumpBefore");
       var bsn = 9999;  //所有浏览过的节点的个数
       var bottom = 0; //每一列的节点的底部距父节点的距离，判断是否应detach
       var temp = [];
@@ -433,14 +460,14 @@ function VirtualList(params) {
         // }
         // marginTop = ul.first.style#margin-top.toInteger();
         marginTop = ul.first.box(#top, #border, #parent);
-        // stdout.println("marginTop",marginTop);
+        // // stdout.println("marginTop",marginTop);
         ul.@#mt = marginTop;
         ul.@#lf = ul.first.@#idx;
         ul.first.style#margin-top = undefined;
 
         while( ul.length ){
           el = ul.last;
-          if ( el.box(#top, #border, #parent) > list_height ) {
+          if ( el.box(#top, #border, #parent) > _VL.height ) {
               cache.push(el);
               el.detach();
               continue;
@@ -450,7 +477,7 @@ function VirtualList(params) {
 
         // 计算所有浏览过的节点的个数
         if ( ul.first ) {
-          // stdout.println("ub",ul.first.@#idx.toInteger() , bsn);
+          // // stdout.println("ub",ul.first.@#idx.toInteger() , bsn);
           if (ul.first.@#idx.toInteger() < bsn) {
             bsn = ul.first.@#idx.toInteger();
           }
@@ -463,7 +490,7 @@ function VirtualList(params) {
       var list_length = getListLength();
       var ni = Integer.max(bsn-1,0) ;
       var niend = Integer.max(ni - BUFFER_SIZE + list_length, 0);
-      // stdout.println("list_length,ni,niend",list_length,ni,niend);
+      // // stdout.println("list_length,ni,niend",list_length,ni,niend);
       for(var i=ni; i>=niend; i--){
           var rec = recordAt(i);
           var t = createRecViewer(rec);
@@ -480,7 +507,7 @@ function VirtualList(params) {
         lastFirst = ul.$(li[idx={ul.@#lf}]);
         eee = lastFirst.box(#top, #border, #parent);
         marginTop = Math.abs( eee - ul.@#mt.toInteger() );
-        // stdout.println("eee",ul.@#mt,eee,marginTop);
+        // // stdout.println("eee",ul.@#mt,eee,marginTop);
         // marginTop -= ul.@#mt.toInteger();
         ul.first.style#margin-top = px(marginTop);
         ul.@#mt = marginTop;
@@ -490,7 +517,7 @@ function VirtualList(params) {
     }
     // list.onSize = function()
     // {
-    //   stdout.println("3");
+    //   // stdout.println("3");
     //   if(list.first)
     //     item_height = list.first.box(#height,#client); // adjust real item height
     //   var ch = list.box(#height,#client);
@@ -507,7 +534,7 @@ function VirtualList(params) {
         ul.scrollTo(0, sy - 30, false, true);
       }
       if (bottom > 0) {
-        stdout.println("bottom",bottom);
+        // stdout.println("bottom",bottom);
         pumpBefore(1);
       }
       return;
@@ -521,8 +548,8 @@ function VirtualList(params) {
         ul.scrollTo(0, sy + 30, false, true);
       }
 
-      if (top-list_height < 0) {
-        // stdout.println("top",top-list_height);
+      if (top-_VL.height < 0) {
+        // // stdout.println("top",top-list_height);
         pumpAfter(1);
       }
       return;
@@ -530,12 +557,14 @@ function VirtualList(params) {
     function mousewheel(evt) {
         if (evt.wheelDelta < 0) {
             //内容上移(滚轮向内滚动)
-            wheelDown();
-            // stdout.println("d");
+            if( _VL.scrollDn == 1)
+                wheelDown();
+            // // stdout.println("d");
         } else {
             //内容下移(滚轮向外滚动)
-            wheelUp();
-            // stdout.println("u");
+            if( _VL.scrollUp == 1)
+                wheelUp();
+            // // stdout.println("u");
         }
         return true;
     }
@@ -552,7 +581,7 @@ function VirtualList(params) {
 
     setupSetObserver = function(apply, silent = false ){
       if (apply) {
-        stdout.println("true");
+        // stdout.println("true");
 
       }
     }
@@ -578,6 +607,7 @@ function VirtualList(params) {
       list.style#flow = "horizontal";
       for(var i=0;i<column_count;i++){
         list.$append(<ul idx={i} style="width:{px(column_width)}"></ul>);
+        _VL.column[i.toString()] = {};
       }
 
     }
@@ -585,7 +615,7 @@ function VirtualList(params) {
     list[#value] = property(v) {
       get return records;
       set {
-        // stdout.println("list.value");
+        // // stdout.println("list.value");
         if ( records !== v ) {
           if (records)
             setupSetObserver(false);
@@ -606,7 +636,7 @@ function VirtualList(params) {
 
     if(!showRecord) showRecord = function(i,r,el)
     {
-      // stdout.println("showRecord");
+      // // stdout.println("showRecord");
       // el.value = r; // each item has behavior form so its value is an aggregate
       // el.state.current = current_record === r;
       if(setupRecord) setupRecord(i,r,el);
