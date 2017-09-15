@@ -33,7 +33,7 @@ function VirtualList(params) {
     var   showRecord = params.renderItemView || null;      // showRecord(index,record, itemElement)
     var   setupRecord = params.setupItemView || null;  // setupItemView(index,record, itemElement)
     var   recordData = params.getItemData;
-    var wheelStep = 150;
+    var wheelStep = 200;
     // var   posUp = { top : 0, left : 0 };
     // var   posDn = { top : 0, left : 0 };
     var   img_width = 200;
@@ -80,6 +80,7 @@ function VirtualList(params) {
       // }
       return r;
     }
+    /*
     function getMinColumn(pos){
         var column_index = 0;
         for(var j=0; j<column.length;j++){
@@ -90,6 +91,7 @@ function VirtualList(params) {
         // // stdout.println("ox",column_index);
         return column_index;
     }
+    */
     function createRecViewer(rec) {
       // // stdout.println("createRecViewer");
       var t = cache.pop() || template.clone();
@@ -97,7 +99,7 @@ function VirtualList(params) {
       // t.data = rec;
       return t;
     }
-
+/*
     function setPosition( el ) {
       //决定应该添加到哪一列
         var column_index = getMinColumn("dn");
@@ -128,11 +130,40 @@ function VirtualList(params) {
         // contain_height = el.box(#height, #border, #self).toInteger();
         column[column_index]["up"]["top"] -= elh;
     }
+    */
     function appends(el, record){
+      // vc = _VL.column[ul.@#idx];
       if (record["elHeight"] && record["belongColumn"]) {
         list.$(ul[idx={record.belongColumn}]).append(el);
         return -1;
       }
+      var vc = _VL.column;
+      var min_vch = list.first.scroll(#bottom);
+      var vch,min_idx;
+      for( var idx in  vc ){
+        stdout.println("idx",JSON.stringify(vc,"  "));
+        idx = idx.toString();
+        if ( vch = vc[idx].height < min_vch ) {
+            // vch = Integer.min( vch, vc.idx.height );
+            // if ( vch < min_vch ) {
+                min_vch = vch;
+                min_idx = idx;
+                continue;
+            // }
+        }
+        min_vch = 0;
+        min_idx = "0";
+        break;
+      }
+      var min_vc = list.$(ul[idx={min_idx}]);
+      var last;
+      if (last = min_vc.last) {
+          last.style#margin-bottom = undefined;
+      }
+      min_vc.append(el);
+      vc[min_idx].height += el.box(#height, #border, #self).toInteger();
+      return min_idx;
+      /*
       // var (x1,y1,x2,y2) = 0;
       var last;
       var bottom = 0;
@@ -156,6 +187,7 @@ function VirtualList(params) {
       }
       min_column.append(el);
       return min_column.@#idx;
+      */
     }
     function prepends(el, record){
       list.$(ul[idx={record.belongColumn}]).prepend(el);
@@ -344,7 +376,7 @@ function VirtualList(params) {
         for ( var ul in list.$$(ul) ){
 
           vc = _VL.column[ul.@#idx];
-          if (vc == {}) break;
+          if (vc.height == 0) break;
           if (ul.first.style#margin-top != undefined) continue;
           referEl = ul.$(li[idx={vc.referElI}]);
           if (!referEl) return;
@@ -353,6 +385,7 @@ function VirtualList(params) {
           marginTop = Math.abs( eee - vc.referElB );
           stdout.println("eee, ul.@#mt",eee, vc.referElB);
           // marginTop -= ul.@#mt.toInteger();
+          // ul.first.style#margin-top = px(marginTop);
           ul.first.style#margin-top = px(marginTop);
           // ul.@#mt = marginTop;
         }
@@ -382,34 +415,12 @@ function VirtualList(params) {
         var marginBottom = undefined;
         for ( var ul in list.$$(ul) ){
             sh = Integer.max(ul.scroll(#bottom),sh);
-            stdout.println("sh",sh);
         }
         for ( var ul in list.$$(ul) ){
           marginBottom = sh - ul.scroll(#bottom);
           ul.last.style#margin-bottom = px(marginBottom);
-          stdout.println("marginBottom", marginBottom);
+          stdout.println("marginBottom", marginBottom, ul.scroll(#bottom));
         }
-        /*
-        var referEl;
-        var eee=0;
-        var marginTop = undefined;
-        var vc;
-        for ( var ul in list.$$(ul) ){
-
-          vc = _VL.column[ul.@#idx];
-          if (vc == {}) break;
-          if (ul.first.style#margin-top != undefined) continue;
-          referEl = ul.$(li[idx={vc.referElI}]);
-          assert referEl;
-          // stdout.println("targetEl",targetEl.@#idx);
-          eee = referEl.box(#bottom, #border, #parent);
-          marginTop = Math.abs( eee - vc.referElB );
-          stdout.println("eee, ul.@#mt",eee, vc.referElB);
-          // marginTop -= ul.@#mt.toInteger();
-          ul.first.style#margin-top = px(marginTop);
-          // ul.@#mt = marginTop;
-        }
-        */
         list.update();
       }
       return;
@@ -648,7 +659,9 @@ function VirtualList(params) {
       list.style#flow = "horizontal";
       for(var i=0;i<column_count;i++){
         list.$append(<ul idx={i} style="width:{px(column_width)}"></ul>);
-        _VL.column[i.toString()] = {};
+        _VL.column[i.toString()] = {
+          height : 0
+        };
       }
 
     }
