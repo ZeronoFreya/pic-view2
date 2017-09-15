@@ -33,7 +33,7 @@ function VirtualList(params) {
     var   showRecord = params.renderItemView || null;      // showRecord(index,record, itemElement)
     var   setupRecord = params.setupItemView || null;  // setupItemView(index,record, itemElement)
     var   recordData = params.getItemData;
-
+    var wheelStep = 150;
     // var   posUp = { top : 0, left : 0 };
     // var   posDn = { top : 0, left : 0 };
     var   img_width = 200;
@@ -150,6 +150,9 @@ function VirtualList(params) {
             min_column = ul;
             break;
         }
+      }
+      if (last = min_column.last) {
+          last.style#margin-bottom = undefined;
       }
       min_column.append(el);
       return min_column.@#idx;
@@ -306,7 +309,9 @@ function VirtualList(params) {
       // stdout.println("实际cache的个数：", c);
       for( var i=0; i<c; i++ ){
         el = temp[tempKey[i]];
+        assert el;
         el.style#margin-top = undefined;
+        el.style#margin-bottom = undefined;
         cache.push(el);
         el.detach();
       }
@@ -342,7 +347,7 @@ function VirtualList(params) {
           if (vc == {}) break;
           if (ul.first.style#margin-top != undefined) continue;
           referEl = ul.$(li[idx={vc.referElI}]);
-          assert referEl;
+          if (!referEl) return;
           // stdout.println("targetEl",targetEl.@#idx);
           eee = referEl.box(#bottom, #border, #parent);
           marginTop = Math.abs( eee - vc.referElB );
@@ -372,6 +377,41 @@ function VirtualList(params) {
       }
 
       list.update();
+      if (ni < niend) {
+        var sh = 0;
+        var marginBottom = undefined;
+        for ( var ul in list.$$(ul) ){
+            sh = Integer.max(ul.scroll(#bottom),sh);
+            stdout.println("sh",sh);
+        }
+        for ( var ul in list.$$(ul) ){
+          marginBottom = sh - ul.scroll(#bottom);
+          ul.last.style#margin-bottom = px(marginBottom);
+          stdout.println("marginBottom", marginBottom);
+        }
+        /*
+        var referEl;
+        var eee=0;
+        var marginTop = undefined;
+        var vc;
+        for ( var ul in list.$$(ul) ){
+
+          vc = _VL.column[ul.@#idx];
+          if (vc == {}) break;
+          if (ul.first.style#margin-top != undefined) continue;
+          referEl = ul.$(li[idx={vc.referElI}]);
+          assert referEl;
+          // stdout.println("targetEl",targetEl.@#idx);
+          eee = referEl.box(#bottom, #border, #parent);
+          marginTop = Math.abs( eee - vc.referElB );
+          stdout.println("eee, ul.@#mt",eee, vc.referElB);
+          // marginTop -= ul.@#mt.toInteger();
+          ul.first.style#margin-top = px(marginTop);
+          // ul.@#mt = marginTop;
+        }
+        */
+        list.update();
+      }
       return;
       /*
       var bsn = 9999;  //所有浏览过的节点的个数
@@ -532,7 +572,7 @@ function VirtualList(params) {
       for ( var ul in list.$$(ul) ){
         bottom = Integer.max(bottom, ul.first.box(#bottom, #border, #parent) );
         sy = ul.scroll(#top);
-        ul.scrollTo(0, sy - 30, false, true);
+        ul.scrollTo(0, sy - wheelStep, true, true);
       }
       if (bottom > 0) {
         // stdout.println("bottom",bottom);
@@ -546,11 +586,11 @@ function VirtualList(params) {
       for ( var ul in list.$$(ul) ){
         top = Integer.min(top, ul.last.box(#top, #border, #parent) );
         sy = ul.scroll(#top);
-        ul.scrollTo(0, sy + 30, false, true);
+        ul.scrollTo(0, sy + wheelStep, true, true);
       }
 
       if (top-_VL.height < 0) {
-        // // stdout.println("top",top-list_height);
+        // stdout.println("top",top-list_height);
         pumpAfter(1);
       }
       return;
