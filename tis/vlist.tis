@@ -132,28 +132,18 @@ function VirtualList(params) {
     }
     */
     function appends(el, record){
-      // vc = _VL.column[ul.@#idx];
       if (record["elHeight"] && record["belongColumn"]) {
         list.$(ul[idx={record.belongColumn}]).append(el);
         return -1;
       }
       var vc = _VL.column;
-      var min_vch = list.first.scroll(#bottom);
+      var min_vch = -1;
       var vch,min_idx;
-      for( var idx in  vc ){
-        stdout.println("idx",JSON.stringify(vc,"  "));
-        idx = idx.toString();
-        if ( vch = vc[idx].height < min_vch ) {
-            // vch = Integer.min( vch, vc.idx.height );
-            // if ( vch < min_vch ) {
-                min_vch = vch;
-                min_idx = idx;
-                continue;
-            // }
-        }
-        min_vch = 0;
-        min_idx = "0";
-        break;
+      for( var idx=0;idx<vc.length;idx++){
+          if ( ((vch = vc[idx.toString()].height) < min_vch) || min_vch == -1 ) {
+            min_vch = vch;
+            min_idx = idx;
+          }
       }
       var min_vc = list.$(ul[idx={min_idx}]);
       var last;
@@ -161,8 +151,7 @@ function VirtualList(params) {
           last.style#margin-bottom = undefined;
       }
       min_vc.append(el);
-      vc[min_idx].height += el.box(#height, #border, #self).toInteger();
-      return min_idx;
+      return min_idx.toString();
       /*
       // var (x1,y1,x2,y2) = 0;
       var last;
@@ -368,14 +357,15 @@ function VirtualList(params) {
       var niend = Integer.min(ni + BUFFER_SIZE - list_length, records.length);
       stdout.println("ni,niend",ni,niend);
 
+      var vc = _VL.column;
       if (ni < niend) {
         var referEl;
         var eee=0;
         var marginTop = undefined;
-        var vc;
         for ( var ul in list.$$(ul) ){
 
           vc = _VL.column[ul.@#idx];
+          stdout.println("vc",vc);
           if (vc.height == 0) break;
           if (ul.first.style#margin-top != undefined) continue;
           referEl = ul.$(li[idx={vc.referElI}]);
@@ -389,8 +379,9 @@ function VirtualList(params) {
           ul.first.style#margin-top = px(marginTop);
           // ul.@#mt = marginTop;
         }
-        list.update();
+        // list.update();
       }
+      vc = _VL.column;
       var (elHeight,belongColumn) = 0;
       for( var i = ni; i < niend; ++i )
       {
@@ -403,23 +394,30 @@ function VirtualList(params) {
           if ( rec["elHeight"] && rec["belongColumn"] ) {
             continue;
           }
-          elHeight = t.box(#height, #border, #self);
+          elHeight = t.box(#height, #border, #self).toInteger();
+          // stdout.println("elHeight",elHeight);
+          vc[belongColumn].height += elHeight;
+          // stdout.println("idx",JSON.stringify(_VL.column,"  "));
           rec["elHeight"] = elHeight;
           rec["belongColumn"] = belongColumn;
           // // stdout.println("xxx",i,elHeight);
       }
 
-      list.update();
+      // list.update();
       if (ni < niend) {
         var sh = 0;
         var marginBottom = undefined;
-        for ( var ul in list.$$(ul) ){
-            sh = Integer.max(ul.scroll(#bottom),sh);
+        // for ( var ul in list.$$(ul) ){
+        //     sh = Integer.max(ul.scroll(#bottom),sh);
+        // }
+        for( var idx=0;idx<vc.length;idx++){
+            sh = Integer.max(vc[idx.toString()].height, sh);
         }
         for ( var ul in list.$$(ul) ){
-          marginBottom = sh - ul.scroll(#bottom);
+          // marginBottom = sh - ul.scroll(#bottom);
+          marginBottom = sh - vc[ul.@#idx].height;
           ul.last.style#margin-bottom = px(marginBottom);
-          stdout.println("marginBottom", marginBottom, ul.scroll(#bottom));
+          // stdout.println("marginBottom", marginBottom, ul.scroll(#bottom));
         }
         list.update();
       }
