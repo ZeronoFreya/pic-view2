@@ -143,7 +143,7 @@ function VirtualList(params) {
         if (el) {
           vc = _VL.column[ul.@#idx];
           // if (!vc) vc = {};
-          vc["referElB"] = bottom;
+          vc["referElB"] = el.box(#top, #border, #parent);
           vc["referElI"] = el.@#idx;
           // ul.@#mt = bottom;
           // ul.@#lf = el.@#idx;
@@ -234,8 +234,9 @@ function VirtualList(params) {
           if (ul.first.style#margin-top != undefined) continue;
           referEl = ul.$(li[idx={vc.referElI}]);
           if (!referEl) return;
-          eee = referEl.box(#bottom, #border, #view) - list_top;
-          marginTop = Math.abs( eee - vc.referElB );
+          eee = referEl.box(#top, #border, #parent);
+          stdout.println("rr",eee,vc.referElB);
+          marginTop = Math.abs( vc.referElB - eee );
           ul.first.style#margin-top = px(marginTop);
         }
         // var marginBottom = undefined;
