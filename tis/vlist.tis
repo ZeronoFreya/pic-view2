@@ -21,7 +21,8 @@
 function VirtualList(params) {
     const list = params.container; assert list;
     const BUFFER_SIZE = params.bufferSize || 100; // sliding buffer size, number of DOM elements in the view
-    const border_spacing = (list.style#border-spacing).toInteger(#px);
+    // const border_spacing = (list.$(div).style#border-spacing).toInteger(#px);
+    const border_spacing = 10;
     const offset = 100;
     var   records = null;
     var   template = list.first;
@@ -36,7 +37,8 @@ function VirtualList(params) {
     var   recordData = params.getItemData;
     var   wheelStep = 200;
     var   img_width = 200;
-
+    var   scrollmain;
+    var   list_top = list.box(#top, #border, #view);
     var _VL = {
       "isNull" : 1,
       "scrollUp" : 1,
@@ -51,6 +53,9 @@ function VirtualList(params) {
     //var   selected = params.multiselect ? {} : null; // ATTENTION: if multiselect then each record must have unique .id field
     var   setupSetObserver;
     // // stdout.println(list.length);
+    function columnOnSize(){
+
+    }
     function recordAt(n) {
       // // stdout.println("recordAt");
       var r = records[n];
@@ -70,7 +75,7 @@ function VirtualList(params) {
 
     function appends(el, record){
       if (record["elHeight"] && record["belongColumn"]) {
-        list.$(ul[idx={record.belongColumn}]).append(el);
+        scrollmain.$(ul[idx={record.belongColumn}]).append(el);
         return -1;
       }
       var vc = _VL.column;
@@ -82,12 +87,13 @@ function VirtualList(params) {
             min_idx = idx;
           }
       }
-      var min_vc = list.$(ul[idx={min_idx}]);
-      var last;
-      if (last = min_vc.last) {
-          last.style#margin-bottom = undefined;
-      }
+      var min_vc = scrollmain.$(ul[idx={min_idx}]);
+      // var last;
+      // if (last = min_vc.last) {
+      //     last.style#margin-bottom = undefined;
+      // }
       min_vc.append(el);
+      // vc[min_idx.toString()].height = min_vc.box(#height, #border, #self).toInteger();
       return min_idx.toString();
     }
     function prepends(el, record){
@@ -115,7 +121,7 @@ function VirtualList(params) {
     }
     function getListLength(){
       var i = 0;
-      for(var ul in list.$$(ul)){
+      for(var ul in scrollmain.$$(ul)){
         i += ul.length;
       }
       return i;
@@ -127,10 +133,9 @@ function VirtualList(params) {
       var tempKey=[];
       var bottom = 0;
       var el, vc;
-
-      for ( var ul in list.$$(ul) ){
+      for ( var ul in scrollmain.$$(ul) ){
         for( el in ul.$$(li)){
-          bottom = el.box(#bottom, #border, #parent);
+          bottom = el.box(#bottom, #border, #view) - list_top;
           if (bottom > 0) break;
           temp[bottom] = el;
           tempKey.push(bottom);
@@ -147,6 +152,7 @@ function VirtualList(params) {
       }
       if (tempKey == []) return 0;
       tempKey = tempKey.sort();
+      // stdout.println("tempKey",tempKey);
       var c = tempKey.length;
       // stdout.println("cache的个数：", c);
       if( vds + BUFFER_SIZE + c > records.length ){
@@ -157,7 +163,7 @@ function VirtualList(params) {
         el = temp[tempKey[i]];
         if(!el) return 0;
         el.style#margin-top = undefined;
-        el.style#margin-bottom = undefined;
+        // el.style#margin-bottom = undefined;
         cache.push(el);
         el.detach();
       }
@@ -167,7 +173,7 @@ function VirtualList(params) {
     function pumpAfter(i) {
       // 所有浏览过且被移除的节点个数
       var vds = _VL.dataStart;
-      // stdout.println("1. vds",vds);
+      stdout.println("1. vds",vds);
       // stdout.println("vc1",JSON.stringify(_VL.column,"  "));
       // 需要移除的节点个数
       var q2 = detachToCache(vds);
@@ -178,10 +184,10 @@ function VirtualList(params) {
       if (_VL.isNull == 1)
         list_length = _VL.isNull = 0;
 
-      // stdout.println("q2", q2);
+      stdout.println("q2", q2);
       var ni = Integer.min( vds + q2 + list_length, records.length );
       var niend = Integer.min(ni + BUFFER_SIZE - list_length, records.length);
-      // stdout.println("ni,niend",ni,niend);
+      stdout.println("ni,niend",ni,niend);
 
       var vc;
 
@@ -200,44 +206,56 @@ function VirtualList(params) {
           }
           elHeight = t.box(#height, #border, #self).toInteger();
           // stdout.println("elHeight",elHeight);
-          vc[belongColumn].height += elHeight+border_spacing;
+          // vc[belongColumn].height += elHeight+border_spacing;
+          vc[belongColumn].height = scrollmain.$(ul[idx={belongColumn}]).box(#height, #border, #self).toInteger();
           // stdout.println("idx",JSON.stringify(_VL.column,"  "));
           rec["elHeight"] = elHeight;
           rec["belongColumn"] = belongColumn;
           // // stdout.println("xxx",i,elHeight);
       }
-      if (ni < niend && vc["0"].height != 0) {
-
-
+      if (ni < niend) {
+        // 获取最短的一列的高度
+        vc = _VL.column;
+        var min_vch = -1;
+        var vch,min_idx;
+        for( var idx=0;idx<vc.length;idx++){
+            if ( ((vch = vc[idx.toString()].height) < min_vch) || min_vch == -1 ) {
+              min_vch = vch;
+              min_idx = idx;
+            }
+        }
+        _VL["minColumnH"] = min_vch;
+        stdout.println("min_vch",min_vch);
         var marginTop = undefined;
         var referEl;
         var eee=0;
-        for ( var ul in list.$$(ul) ){
+        for ( var ul in scrollmain.$$(ul) ){
           vc = _VL.column[ul.@#idx];
           if (ul.first.style#margin-top != undefined) continue;
           referEl = ul.$(li[idx={vc.referElI}]);
           if (!referEl) return;
-          eee = referEl.box(#bottom, #border, #parent);
+          eee = referEl.box(#bottom, #border, #view) - list_top;
           marginTop = Math.abs( eee - vc.referElB );
           ul.first.style#margin-top = px(marginTop);
         }
-        var marginBottom = undefined;
-        // 获取最长的一列的idx
-        vc = _VL.column;
-        var sh = 0;
-        var max_idx;
-        for( var idx=0;idx<vc.length;idx++){
-            if(vc[idx.toString()].height > sh){
-                sh = vc[idx.toString()].height;
-                max_idx = idx.toString();
-            }
-        }
-        var max_ul = list.$(ul[idx={max_idx}]);
-        var max_h = max_ul.scroll(#top) + max_ul.scroll(#bottom);
-        for ( var ul in list.$$(ul) ){
-          marginBottom = max_h - ul.scroll(#top) - ul.scroll(#bottom);
-          ul.last.style#margin-bottom = px(marginBottom);
-        }
+        // var marginBottom = undefined;
+        // // 获取最长的一列的idx
+        // vc = _VL.column;
+        // var sh = 0;
+        // var max_idx;
+        // for( var idx=0;idx<vc.length;idx++){
+        //     if(vc[idx.toString()].height > sh){
+        //         sh = vc[idx.toString()].height;
+        //         max_idx = idx.toString();
+        //     }
+        // }
+        // var max_ul = list.$(ul[idx={max_idx}]);
+        // var max_h = max_ul.scroll(#top) + max_ul.scroll(#bottom);
+        // for ( var ul in list.$$(ul) ){
+        //   marginBottom = max_h - ul.scroll(#top) - ul.scroll(#bottom);
+        //   ul.last.style#margin-bottom = px(marginBottom);
+        // }
+          // var min_vc = list.$(ul[idx={min_idx}]);
 
         list.update();
       }
@@ -324,9 +342,10 @@ function VirtualList(params) {
     //     visible_items = vi;
     // }
     function wheelUp(){
+      return;
       var sy = 0;
       var bottom = 0;
-      for ( var ul in list.$$(ul) ){
+      for ( var ul in scrollmain.$$(ul) ){
         bottom = Integer.max(bottom, ul.first.box(#bottom, #border, #parent) );
         sy = ul.scroll(#top);
         ul.scrollTo(0, sy - wheelStep, true, true);
@@ -338,6 +357,12 @@ function VirtualList(params) {
       return;
     }
     function wheelDown(){
+      // var scrollmain = list.$(.scrollmain);
+      if (list.scroll(#top)+list.scroll(#height) > _VL["minColumnH"] - 100) {
+        stdout.println("rtyxtdrf",_VL["minColumnH"] );
+        pumpAfter(1);
+      }
+      return;
       var sy = 0;
       var top = 99999;
       for ( var ul in list.$$(ul) ){
@@ -357,19 +382,40 @@ function VirtualList(params) {
             //内容上移(滚轮向内滚动)
             if( _VL.scrollDn == 1)
                 wheelDown();
-            // // stdout.println("d");
+             // stdout.println("d");
         } else {
             //内容下移(滚轮向外滚动)
             if( _VL.scrollUp == 1)
                 wheelUp();
-            // // stdout.println("u");
+             // stdout.println("u");
         }
         return true;
     }
+    // function onScrollTo(evt)
+    // {
+    //   if(evt.type == Event.SCROLL_STEP_PLUS)
+    //     stdout.println("event.type",evt.type);
+    //   return;
+    //   if (evt.wheelDelta < 0) {
+    //         //内容上移(滚轮向内滚动)
+    //         stdout.println("up",evt.wheelDelta);
+    //         if( _VL.scrollDn == 1)
+    //             wheelDown();
+    //         // // stdout.println("d");
+    //     } else {
+    //         //内容下移(滚轮向外滚动)
+    //         stdout.println("dn",evt.wheelDelta);
+    //         if( _VL.scrollUp == 1)
+    //             wheelUp();
+    //         // // stdout.println("u");
+    //     }
+    // }
     // list.onScroll = function(evt)
     // {
-    //   if( evt.type == Event.SCROLL_POS )
-    //     onScrollTo( (evt.scrollPos / item_height).limit( 0 , records.length - 1 - visible_items));
+    //   if( evt.type == Event.SCROLL_POS ){
+    //     onScrollTo( evt );
+    //     // stdout.println("evt.scrollPos",evt.scrollPos);
+    //   }
     // };
     list.onMouse = function(evt) {
       switch(evt.type) {
@@ -397,19 +443,60 @@ function VirtualList(params) {
     //   }
     // }
     function initStaggeredGrid(){
-      
+
       var baseW = 270;
       var (container_width, container_height) = list.box(#dimension, #inner);
       var column_count = Math.floor( container_width / baseW.toFloat() + 0.5 ).toInteger();
       var column_width = Math.floor( ( container_width + border_spacing.toFloat() ) / column_count - border_spacing );
-      list.style#flow = "horizontal";
+      // list.style#flow = "horizontal";
+      // for(var i=0;i<column_count;i++){
+      //   list.$append(<ul idx={i} style="width:{px(column_width)}"></ul>);
+      //   _VL.column[i.toString()] = {
+      //     height : 0
+      //   };
+      // }
+      list.style#flow = "vertical";
+
+      // var head = Element.create{div,class:"as"};
+      // list.insert(head);
+      // var body = Element.create{div};
+      // for(var i=0;i<column_count;i++){
+      //   // body.$append(<ul idx={i} style="width:{px(column_width)}"></ul>);
+      //   body.insert( Element.create{ ul, ["ggg"] } );
+      //   // _VL.column[i.toString()] = {height : 0};
+      // }
+      // list.insert(body);
+      // var foot = Element.create{div};
+      // list.insert(foot);
+
+      list.$append(<div.scrolltop></div>);
+      // list.$append(<div.scrollmain></div>);
+      scrollmain = Element.create{div,class:"scrollmain"};
+      list.append(scrollmain);
+      scrollmain.style#flow = "horizontal";
+      var ul;
       for(var i=0;i<column_count;i++){
-        list.$append(<ul idx={i} style="width:{px(column_width)}"></ul>);
-        _VL.column[i.toString()] = {
-          height : 0
-        };
+        // body.$append(<ul idx={i} style="width:{px(column_width)}"></ul>);
+        scrollmain.insert( ul = Element.create{
+          ul,
+          idx:i
+        } );
+        ul.style.set{
+          width : px(column_width)
+        }
+
+        // ul.onSize = function(){
+        //   var idx = this.@#idx;
+        //   _VL.column[idx].height = this.box(#height, #border, #self).toInteger();
+        //   stdout.println("hh",JSON.stringify(_VL.column[idx],"  "));
+        // }
+        _VL.column[i.toString()] = {height : 0};
       }
 
+      // scrollmain.$$(ul).style.set{
+      //     width : px(column_width)
+      //   }
+      list.$append(<div.scrollbottom></div>);
     }
 
     list[#value] = property(v) {

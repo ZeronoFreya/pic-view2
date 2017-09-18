@@ -4,7 +4,6 @@
     /*size: 300dip;*/
     width: *;
     height: 400px;
-    border-spacing: 10dip;
     /*overflow: hidden;*/
     /*overflow: scroll-indicator;*/
     /*overflow: auto;*/
@@ -15,12 +14,17 @@
     /*position: relative;*/
     margin-top: 200px;
     /*flow:horizontal;*/
+    overflow-y: scroll-indicator;
+}
+#pic-view > div{
+    width: *;
+    border-spacing: 10dip;
 }
 ul{
     outline: 1px blue solid;
-    height: *;
+    /*height: *;*/
     border-spacing: 10dip;
-    overflow: hidden;
+    /*overflow: hidden;*/
 }
 li{
     /*behavior:form;*/
