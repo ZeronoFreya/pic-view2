@@ -13,8 +13,10 @@
     display: block;
     /*position: relative;*/
     margin-top: 200px;
+    overflow-x: hidden;
     /*flow:horizontal;*/
-    overflow-y: scroll-indicator;
+    /*overflow-y: scroll-indicator;*/
+    overflow-y: hidden;
 }
 #pic-view > div{
     width: *;
