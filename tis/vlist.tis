@@ -45,6 +45,8 @@ function VirtualList(params) {
       "scrollDn" : 1,
       "height" : list.box(#height, #border, #self).toInteger(),
       "dataStart" : 0,
+      "minColumnH" : 0,
+      "maxColumnMt" : 0,
       "column" :{}
     };
     function dogc() { gc(); }
@@ -97,7 +99,12 @@ function VirtualList(params) {
       return min_idx.toString();
     }
     function prepends(el, record){
-      list.$(ul[idx={record.belongColumn}]).prepend(el);
+      if (record["elHeight"] && record["belongColumn"]) {
+        var ul = scrollmain.$(ul[idx={record.belongColumn}]);
+        ul.first.style#margin-top = undefined;
+        ul.prepend(el);
+        return -1;
+      }
       return;
       // var (x1,y1,x2,y2) = 0;
       // var first;
@@ -149,7 +156,6 @@ function VirtualList(params) {
           // ul.@#mt = bottom;
           // ul.@#lf = el.@#idx;
           // ul.first.style#margin-top = undefined;
-          
         }
       }
       if (tempKey == []) return 0;
@@ -165,6 +171,50 @@ function VirtualList(params) {
         el = temp[tempKey[i]];
         if(!el) return 0;
         el.style#margin-top = undefined;
+        // el.style#margin-bottom = undefined;
+        cache.push(el);
+        el.detach();
+      }
+      // list.update();
+      return Integer.max(c,0);
+    }
+    function detachToCache2(vds){
+      // if (q1 == 0) return 0;
+      var temp = {};
+      var tempKey=[];
+      var top = 0;
+      var el, vc;
+      for ( var ul in scrollmain.$$(ul) ){
+        for( el in ul.$$(li)){
+          top = el.box(#top, #border, #view) - list_top;
+          // stdout.println("bottom",bottom);
+          if (top < _VL.height ) continue;
+          temp[top] = el;
+          tempKey.push(top);
+        }
+        if ( el = ul.first ) {
+          vc = _VL.column[ul.@#idx];
+          // if (!vc) vc = {};
+          vc["referElB"] = el.box(#top, #border, #parent);
+          vc["referElI"] = el.@#idx;
+          // ul.@#mt = bottom;
+          // ul.@#lf = el.@#idx;
+          // ul.first.style#margin-top = undefined;
+        }
+      }
+      if (tempKey == []) return 0;
+      tempKey = tempKey.sort();
+       stdout.println("tempKey",tempKey);
+      var c = tempKey.length;
+       stdout.println("cache的个数：", c);
+      if( vds < c ){
+          c = vds;
+      }
+       stdout.println("实际cache的个数：", c);
+      for( var i=tempKey.length-1; i>=tempKey.length-c; i-- ){
+        el = temp[tempKey[i]];
+        if(!el) return 0;
+        // el.style#margin-top = undefined;
         // el.style#margin-bottom = undefined;
         cache.push(el);
         el.detach();
@@ -240,6 +290,7 @@ function VirtualList(params) {
           // stdout.println("rr",eee,vc.referElB);
           marginTop = Math.abs( vc.referElB - eee );
           ul.first.style#margin-top = px(marginTop);
+          _VL["maxColumnMt"] = Integer.max(_VL["maxColumnMt"], marginTop);
         }
 
         list.update();
@@ -248,7 +299,48 @@ function VirtualList(params) {
     }
 
     function pumpBefore() {
+      var vds = _VL.dataStart;
+      var q2 = detachToCache2(vds);
+      _VL.dataStart -= q2;
+      var list_length = BUFFER_SIZE - q2;
+      stdout.println("q2", q2);
+      var ni = Integer.max(vds - 1, 0);
+      var niend = ni + 1 - q2;
+      stdout.println("ni,niend",ni,niend);
+
+      var vc;
+      vc = _VL.column;
+      var (elHeight,belongColumn) = 0;
+      for( var i = ni; i >= niend; i-- )
+      {
+          var rec = recordAt(i);
+          var t = createRecViewer(rec);
+          t.@#idx = i;
+          prepends(t, rec);
+          // setupRecordObserver(rec,t);
+          showRecord(i,rec,t);
+      }
+      if (ni > niend) {
+        var marginTop = undefined;
+        var referEl;
+        var eee=0;
+        for ( var ul in scrollmain.$$(ul) ){
+          vc = _VL.column[ul.@#idx];
+          if (ul.first.style#margin-top != undefined) continue;
+          referEl = ul.$(li[idx={vc.referElI}]);
+          if (!referEl) return;
+          eee = referEl.box(#top, #border, #parent);
+          stdout.println("rr",eee,vc.referElB);
+          marginTop = Math.abs( vc.referElB - eee );
+          ul.first.style#margin-top = px(marginTop);
+          _VL["maxColumnMt"] = 0;
+          _VL["maxColumnMt"] = Integer.max(_VL["maxColumnMt"], marginTop);
+        }
+
+        list.update();
+      }
       return;
+      /*
       // // stdout.println("pumpBefore");
       var bsn = 9999;  //所有浏览过的节点的个数
       var bottom = 0; //每一列的节点的底部距父节点的距离，判断是否应detach
@@ -315,9 +407,16 @@ function VirtualList(params) {
       }
       list.update();
       return;
+      */
     }
 
     function wheelUp(){
+      var st = list.scroll(#top);
+      // st 为当前滚动条的位置，-wheelStep为预计滚动到的位置，判断滚动结束时与_VL["minColumnH"]的比值
+      if ( st - wheelStep > _VL["maxColumnMt"] - 100) {
+        stdout.println("rtyxtdrf",_VL["maxColumnMt"] );
+        pumpBefore();
+      }
       list.scrollTo(0, list.scroll(#top) - wheelStep, true, true);
       return;
       /*
