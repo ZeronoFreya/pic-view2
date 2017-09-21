@@ -30,7 +30,7 @@ self.ready = function() {
     };
     vlist.value = records;
 
-    $(#pic-view).on("click",function(){
-        stdout.println(this.scroll(#top));
+    $(#pic-view).on("click","li",function(){
+        stdout.println(this.box(#top, #border, #parent));
     });
 }
