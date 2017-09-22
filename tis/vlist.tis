@@ -202,7 +202,7 @@ function VirtualList(params) {
           // stdout.println("referElI", vc["referElI"], vc["referElB"]);
           // ul.@#mt = bottom;
           // ul.@#lf = el.@#idx;
-          // el.style#margin-top = undefined;
+          el.style#margin-top = undefined;
         }
       }
       if (tempKey == []) return 0;
@@ -287,18 +287,30 @@ function VirtualList(params) {
         }
         _VL["minColumnH"] = scrollmain.$(ul[idx={min_idx}]).box(#height, #border, #self).toInteger();
 
-        var marginTop = undefined;
-        var referEl;
-        var eee=0;
+        // var marginTop = undefined;
+        // var referEl;
+        // var eee=0;
+        // for ( var ul in scrollmain.$$(ul) ){
+        //   vc = _VL.column[ul.@#idx];
+        //   if (ul.first.style#margin-top != undefined) continue;
+        //   referEl = ul.$(li[idx={vc.referElI}]);
+        //   if (!referEl) return;
+        //   eee = referEl.box(#top, #border, #parent);
+        //   // stdout.println("rr",eee,vc.referElB);
+        //   marginTop = Math.abs( vc.referElB - eee );
+        //   ul.first.style#margin-top = px(marginTop);
+        //   _VL["maxColumnMt"] = Integer.max(_VL["maxColumnMt"], marginTop);
+        // }
+
+        var el,marginTop;
         for ( var ul in scrollmain.$$(ul) ){
-          vc = _VL.column[ul.@#idx];
-          if (ul.first.style#margin-top != undefined) continue;
-          referEl = ul.$(li[idx={vc.referElI}]);
-          if (!referEl) return;
-          eee = referEl.box(#top, #border, #parent);
-          // stdout.println("rr",eee,vc.referElB);
-          marginTop = Math.abs( vc.referElB - eee );
-          ul.first.style#margin-top = px(marginTop);
+          // referEl = ul.$(li[idx={vc.referElI}]);
+          // if (referEl)
+          //   referEl.style#margin-top = undefined;
+          el = ul.first;
+          marginTop = records[el.@#idx.toInteger()].top;
+          el.style#margin-top = px(marginTop);
+          _VL["maxColumnMt"] = 0;
           _VL["maxColumnMt"] = Integer.max(_VL["maxColumnMt"], marginTop);
         }
 
@@ -331,6 +343,7 @@ function VirtualList(params) {
           showRecord(i,rec,t);
       }
       // return;
+      /*
       if (ni > niend) {
         // scrollmain.update();
         var marginTop = undefined;
@@ -352,6 +365,18 @@ function VirtualList(params) {
         }
 
         // list.update();
+      }
+      */
+      var el,marginTop;
+      for ( var ul in scrollmain.$$(ul) ){
+        // referEl = ul.$(li[idx={vc.referElI}]);
+        // if (referEl)
+        //   referEl.style#margin-top = undefined;
+        el = ul.first;
+        marginTop = records[el.@#idx.toInteger()].top;
+        el.style#margin-top = px(marginTop);
+        _VL["maxColumnMt"] = 0;
+        _VL["maxColumnMt"] = Integer.max(_VL["maxColumnMt"], marginTop);
       }
       return;
       /*
@@ -539,6 +564,7 @@ function VirtualList(params) {
         if( records ){
           initStaggeredGrid();
           pumpAfter.call(list,0);
+          // stdout.println("vc1",JSON.stringify(records,"  "));
         }
       }
     }

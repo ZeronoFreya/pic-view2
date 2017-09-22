@@ -16,14 +16,14 @@
     overflow-x: hidden;
     /*flow:horizontal;*/
     /*overflow-y: scroll-indicator;*/
-    /*overflow-y: hidden;*/
+    overflow-y: hidden;
 }
 #pic-view > div{
     width: *;
     border-spacing: 10dip;
 }
 ul{
-    outline: 1px blue solid;
+    /*outline: 1px blue solid;*/
     /*height: *;*/
     border-spacing: 10dip;
     /*overflow: hidden;*/
@@ -42,6 +42,6 @@ li{
     background-size: cover;
     /*background: url(../num.jpg) no-repeat top left;*/
 }
-li img{
-    width: *;
+li p{
+    font-size: 60px;
 }
