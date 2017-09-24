@@ -35,7 +35,7 @@ function VirtualList(params) {
     var   showRecord = params.renderItemView || null;      // showRecord(index,record, itemElement)
     var   setupRecord = params.setupItemView || null;  // setupItemView(index,record, itemElement)
     var   recordData = params.getItemData;
-    var   wheelStep = 200;
+    var   wheelStep = 30;
     var   img_width = 200;
     var   scrollmain;
     var   list_top = list.box(#top, #border, #view);
@@ -456,7 +456,7 @@ function VirtualList(params) {
         // stdout.println("rtyxtdrf",st , wheelStep,_VL["maxColumnMt"] );
         pumpBefore();
       }
-      list.scrollTo(0, list.scroll(#top) - wheelStep, true, true);
+      list.scrollTo(0, list.scroll(#top) - wheelStep, false, true);
       return;
       /*
       var sy = 0;
@@ -481,7 +481,7 @@ function VirtualList(params) {
         // // stdout.println("rtyxtdrf",_VL["minColumnH"] );
         pumpAfter(1);
       }
-      list.scrollTo(0, st + wheelStep, true, true);
+      list.scrollTo(0, st + wheelStep, false, true);
       // stdout.println("top, h",st,_VL.height);
       return;
       /*
