@@ -31,6 +31,7 @@ function VirtualList(params) {
     var   visible_items = 0;  // number of visible items in the view
     var   current_record = undefined;  // current record
     var   cache = [];         // cache of DOM elements - list items
+    var   ghost = [];         // 保存所有被移除的
 
     var   showRecord = params.renderItemView || null;      // showRecord(index,record, itemElement)
     var   setupRecord = params.setupItemView || null;  // setupItemView(index,record, itemElement)
@@ -134,7 +135,7 @@ function VirtualList(params) {
       return i;
     }
 
-    function detachToCache(vds){
+    function detachToCache(){
       // if (q1 == 0) return 0;
       var temp = {};
       var tempKey=[];
@@ -162,24 +163,26 @@ function VirtualList(params) {
       if (tempKey == []) return 0;
       tempKey = tempKey.sort();
       // // stdout.println("tempKey",tempKey);
-      var c = tempKey.length;
+      // var c = tempKey.length;
       // // stdout.println("cache的个数：", c);
-      if( vds + BUFFER_SIZE + c > records.length ){
-          c = Integer.min( records.length - vds - BUFFER_SIZE , c );
-      }
+      // if( ghost.length + c + BUFFER_SIZE > records.length ){
+      //     c = records.length - ghost.length - BUFFER_SIZE;
+      // }
+      var c = Integer.min( records.length-ghost.length-BUFFER_SIZE, tempKey.length );
       // // stdout.println("实际cache的个数：", c);
       for( var i=0; i<c; i++ ){
         el = temp[tempKey[i]];
         if(!el) return 0;
+        ghost.push( el.@#idx );
         el.style#margin-top = undefined;
         // el.style#margin-bottom = undefined;
         cache.push(el);
         el.detach();
       }
       // list.update();
-      return Integer.max(c,0);
+      return c;
     }
-    function detachToCache2(vds){
+    function detachToCache2(){
       // if (q1 == 0) return 0;
       var temp = {};
       var tempKey=[];
@@ -208,11 +211,12 @@ function VirtualList(params) {
       if (tempKey == []) return 0;
       tempKey = tempKey.sort();
        // stdout.println("tempKey",tempKey);
-      var c = tempKey.length;
-       stdout.println("cache的个数：", c);
-      if( vds < c ){
-          c = vds;
-      }
+      // var c = tempKey.length;
+       // stdout.println("cache的个数：", c);
+      // if( ghost.length < c ){
+      //     c = ghost.length;
+      // }
+      var c = Integer.min( ghost.length, tempKey.length );
        stdout.println("实际cache的个数：", c);
       for( var i=tempKey.length-1; i>=tempKey.length-c; i-- ){
         el = temp[tempKey[i]];
@@ -223,7 +227,7 @@ function VirtualList(params) {
         el.detach();
       }
       // list.update();
-      return Integer.max(c,0);
+      return c;
     }
     function pumpAfter(i) {
       stdout.println("pumpAfter",_VL.dataStart);
@@ -232,7 +236,7 @@ function VirtualList(params) {
       // stdout.println("1. vds",vds);
       // // stdout.println("vc1",JSON.stringify(_VL.column,"  "));
       // 需要移除的节点个数
-      var q2 = detachToCache(vds);
+      var q2 = detachToCache();
       // // stdout.println("vc2",JSON.stringify(_VL.column,"  "));
       _VL.dataStart += q2;
       // var list_length = getListLength();
@@ -241,7 +245,7 @@ function VirtualList(params) {
         list_length = _VL.isNull = 0;
 
       // stdout.println("q2", q2);
-      var ni = Integer.min( vds + q2 + list_length, records.length );
+      var ni = Integer.min( ghost.length + q2 + list_length, records.length );
       var niend = Integer.min(ni + BUFFER_SIZE - list_length, records.length);
       // stdout.println("ni,niend",ni,niend);
 
@@ -316,16 +320,19 @@ function VirtualList(params) {
 
         list.update();
       }
+      stdout.println("ghost",ghost);
       return;
     }
 
     function pumpBefore() {
       stdout.println("pumpBefore",_VL.dataStart);
-      var vds = _VL.dataStart ;
-      var q2 = detachToCache2(vds);
+      // var vds = _VL.dataStart ;
+      var q2 = detachToCache2();
       _VL.dataStart -= q2;
       var list_length = BUFFER_SIZE - q2;
       // stdout.println("q2", q2);
+
+      /*
       var ni = Integer.max(vds - 1, 0);
       var niend = ni + 1 - q2;
       stdout.println("ni,niend",ni,niend);
@@ -342,111 +349,26 @@ function VirtualList(params) {
           // setupRecordObserver(rec,t);
           showRecord(i,rec,t);
       }
-      // return;
-      /*
-      if (ni > niend) {
-        // scrollmain.update();
-        var marginTop = undefined;
-        var referEl;
-        var eee=0;
-        for ( var ul in scrollmain.$$(ul) ){
-          vc = _VL.column[ul.@#idx];
-          if (ul.first.style#margin-top != undefined) continue;
-          referEl = ul.$(li[idx={vc.referElI}]);
-          if (!referEl) return;
-          referEl.style#margin-top = undefined;
-          scrollmain.update();
-          eee = referEl.box(#top, #border, #parent);
-          // stdout.println("rr",eee,vc.referElB);
-          marginTop = Math.abs( vc.referElB - eee );
-          ul.first.style#margin-top = px(marginTop);
-          _VL["maxColumnMt"] = 0;
-          _VL["maxColumnMt"] = Integer.max(_VL["maxColumnMt"], marginTop);
-        }
-
-        // list.update();
-      }
       */
+      var idx = 0;
+      for(var i=0; i<q2; i++){
+        idx = ghost.pop().toInteger();
+        var rec = recordAt(idx);
+        var t = createRecViewer(rec);
+        t.@#idx = idx;
+        prepends(t, rec);
+        // setupRecordObserver(rec,t);
+        showRecord(idx,rec,t);
+      }
+
       var el,marginTop;
       for ( var ul in scrollmain.$$(ul) ){
-        // referEl = ul.$(li[idx={vc.referElI}]);
-        // if (referEl)
-        //   referEl.style#margin-top = undefined;
         el = ul.first;
         marginTop = records[el.@#idx.toInteger()].top;
         el.style#margin-top = px(marginTop);
         _VL["maxColumnMt"] = 0;
         _VL["maxColumnMt"] = Integer.max(_VL["maxColumnMt"], marginTop);
       }
-      return;
-      /*
-      // // stdout.println("pumpBefore");
-      var bsn = 9999;  //所有浏览过的节点的个数
-      var bottom = 0; //每一列的节点的底部距父节点的距离，判断是否应detach
-      var temp = [];
-      var marginTop = undefined;  //detach之前节点后，维持当前节点的位置，即是说，每一列是由marginTop撑开的
-      var el;
-      for ( var ul in list.$$(ul) ){
-        // temp = []; // 临时储存应detach的节点，不能在循环中detach，否则无法获取marginTop
-        // for ( var el in ul.$$(li) ){
-        // }
-        // marginTop = ul.first.style#margin-top.toInteger();
-        marginTop = ul.first.box(#top, #border, #parent);
-        // // // stdout.println("marginTop",marginTop);
-        ul.@#mt = marginTop;
-        ul.@#lf = ul.first.@#idx;
-        ul.first.style#margin-top = undefined;
-
-        while( ul.length ){
-          el = ul.last;
-          if ( el.box(#top, #border, #parent) > _VL.height ) {
-              cache.push(el);
-              el.detach();
-              continue;
-          }
-          break;
-        }
-
-        // 计算所有浏览过的节点的个数
-        if ( ul.first ) {
-          // // // stdout.println("ub",ul.first.@#idx.toInteger() , bsn);
-          if (ul.first.@#idx.toInteger() < bsn) {
-            bsn = ul.first.@#idx.toInteger();
-          }
-        }else{
-          bsn = 0;
-        }
-      }
-      // bsn = Integer.max(bsn-1,0);
-      // 取得detach后list剩余节点个数
-      var list_length = getListLength();
-      var ni = Integer.max(bsn-1,0) ;
-      var niend = Integer.max(ni - BUFFER_SIZE + list_length, 0);
-      // // // stdout.println("list_length,ni,niend",list_length,ni,niend);
-      for(var i=ni; i>=niend; i--){
-          var rec = recordAt(i);
-          var t = createRecViewer(rec);
-          t.@#idx = i;
-          prepends(t,rec);
-          // setupRecordObserver(rec,t);
-          showRecord(i,rec,t);
-
-      }
-      list.update();
-      var lastFirst;
-      var eee=0;
-      for ( var ul in list.$$(ul) ){
-        lastFirst = ul.$(li[idx={ul.@#lf}]);
-        eee = lastFirst.box(#top, #border, #parent);
-        marginTop = Math.abs( eee - ul.@#mt.toInteger() );
-        // // // stdout.println("eee",ul.@#mt,eee,marginTop);
-        // marginTop -= ul.@#mt.toInteger();
-        ul.first.style#margin-top = px(marginTop);
-        ul.@#mt = marginTop;
-      }
-      list.update();
-      return;
-      */
     }
 
     function wheelUp(){
