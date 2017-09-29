@@ -17,7 +17,7 @@ self.ready = function() {
         // stdout.println( "recordNo",recordNo,record[0] );
         var h = record["elHeight"];
         if (!h) {
-            h = Math.round( myRandom(50,300) );
+            h = Math.round( myRandom(125,300) );
         }
         // var h = Math.round( myRandom(100,200) );
         itemEl.style#height = px(h);
